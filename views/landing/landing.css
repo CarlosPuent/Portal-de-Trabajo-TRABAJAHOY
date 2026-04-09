@@ -64,6 +64,9 @@ a {
 
 .site-header {
   background: var(--white);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 10;
 }
 
 .site-header__container {
@@ -160,12 +163,10 @@ a {
 .hero__gradient {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    var(--orange) 0%,
-    var(--hero-mid) 48%,
-    var(--blue) 100%
-  );
+  background: linear-gradient(90deg,
+      var(--orange) 0%,
+      var(--hero-mid) 48%,
+      var(--blue) 100%);
   z-index: 0;
 }
 
@@ -644,6 +645,7 @@ a {
 }
 
 @media (max-width: 1200px) {
+
   .hero-categories__grid,
   .stats-grid,
   .jobs-grid,
