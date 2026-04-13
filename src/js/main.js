@@ -19,6 +19,7 @@ import { initSavedJobsPage } from '@pages/saved-jobs.page.js';
 import { initApplicationsPage } from '@pages/applications.page.js';
 import { initResourcesPage } from '@pages/resources.page.js';
 import { initForumPage } from '@pages/forum.page.js';
+import { initCVPage } from '@pages/cv.page.js';
 
 // ============================================================
 // Loading Helpers

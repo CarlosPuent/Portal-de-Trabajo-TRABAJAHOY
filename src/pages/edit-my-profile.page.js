@@ -43,32 +43,7 @@ function getEditHTML(user) {
   const navbar = renderNavbar({ activeRoute: 'candidate/profile/edit', isAuthenticated: true, user });
   const p = currentProfile || {};
 
-  const quickNav = `
-    <div class="profile-quick-nav">
-      <div class="profile-quick-nav__container">
-        <a href="#/candidate/dashboard" class="profile-quick-nav__link">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-          Panel
-        </a>
-        <a href="#/candidate/profile" class="profile-quick-nav__link">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-          Perfil
-        </a>
-        <a href="#/candidate/profile/edit" class="profile-quick-nav__link profile-quick-nav__link--active">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-          Editar
-        </a>
-        <a href="#/candidate/saved-jobs" class="profile-quick-nav__link">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
-          Guardados
-        </a>
-        <a href="#/candidate/applications" class="profile-quick-nav__link">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-          Aplicaciones
-        </a>
-      </div>
-    </div>
-  `;
+ 
 
   const tabs = [
     { id: 'tab-personal', label: 'Información Personal', icon: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>` },
@@ -82,7 +57,7 @@ function getEditHTML(user) {
     <div class="edit-content">
       <!-- Tabs -->
       <div class="edit-tabs">
-        ${tabs.map((t, i) => `<button class="edit-tab${i === 0 ? ' edit-tab--active' : ''}" data-tab="${t.id}">${t.icon} ${t.label}</button>`).join('')}
+        ${tabs.map((t, i) => `<button class="edit-tab${i === 0 ? ' edit-tab--active' : ''}" data-tab="${t.id}"><span class="edit-tab__icon">${t.icon}</span> ${t.label}</button>`).join('')}
       </div>
 
       <!-- Tab: Personal Info -->
@@ -267,13 +242,19 @@ function getEditHTML(user) {
   const styles = `
     .edit-page { background: #f3f4f6; }
     .edit-content { max-width: 800px; margin: 0 auto; padding: 32px; }
-    .edit-tabs { display: flex; gap: 4px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 4px; }
+    .edit-tabs { display: flex; gap: 4px; margin-bottom: 32px; }
     .edit-tab {
-      padding: 10px 20px; border: none; background: white; border-radius: 10px; font-size: 14px; font-weight: 500;
-      color: #6b7280; cursor: pointer; transition: all 0.15s; white-space: nowrap; display: flex; align-items: center; gap: 6px;
+      flex: 1; min-width: 0; justify-content: center; padding: 8px 6px; border: none; background: white; border-radius: 10px; font-size: 12px; font-weight: 500;
+      color: #6b7280; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 3px;
+      overflow: hidden;
     }
+    .edit-tab__icon { flex-shrink: 0; width: 14px; height: 14px; display: none; }
+    .edit-tab__icon svg { width: 14px; height: 14px; }
+    .edit-tab__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .edit-tab--active .edit-tab__icon { display: inline-flex; }
     .edit-tab:hover { background: #f9fafb; color: #374151; }
     .edit-tab--active { background: #3b82f6; color: white; }
+    .edit-tab--active:hover { background: #2563eb; color: white; }
     .edit-panel { display: none; }
     .edit-panel--active { display: block; }
     .edit-card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding: 24px; margin-bottom: 24px; }
@@ -324,7 +305,7 @@ function getEditHTML(user) {
     }
   `;
 
-  return renderPage({ navbar, main: quickNav + mainContent, pageClass: 'edit-page', extraStyles: styles });
+  return renderPage({ navbar, main:  mainContent, pageClass: 'edit-page', extraStyles: styles });
 }
 
 function initEditEvents() {

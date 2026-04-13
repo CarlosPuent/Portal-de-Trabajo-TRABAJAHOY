@@ -40,14 +40,20 @@ const styles = `
   .dashboard-card__link { color: #3b82f6; text-decoration: none; font-size: 13px; font-weight: 500; }
   .dashboard-card__link:hover { text-decoration: underline; }
   .dashboard-card__body { padding: 14px 18px; }
-  .list-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f9fafb; }
-  .list-item:last-child { border-bottom: none; }
-  .list-item__logo { width: 40px; height: 40px; border-radius: 10px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #6b7280; font-size: 16px; flex-shrink: 0; }
-  .list-item__info { flex: 1; min-width: 0; }
-  .list-item__title { font-size: 13px; font-weight: 600; color: #111827; margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .list-item__sub { font-size: 12px; color: #6b7280; margin: 0; }
-  .list-item__action { flex-shrink: 0; }
-  .list-item__status { flex-shrink: 0; }
+  .detail-card { padding: 16px; border: 1px solid #f3f4f6; border-radius: 10px; margin-bottom: 12px; transition: all 0.15s; }
+  .detail-card:hover { border-color: #e5e7eb; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  .detail-card:last-child { margin-bottom: 0; }
+  .detail-card__header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .detail-card__logo { width: 44px; height: 44px; border-radius: 10px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #6b7280; font-size: 18px; flex-shrink: 0; }
+  .detail-card__info { flex: 1; min-width: 0; }
+  .detail-card__title { font-size: 14px; font-weight: 600; color: #111827; margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .detail-card__company { font-size: 12px; color: #6b7280; margin: 0; }
+  .detail-card__tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .detail-tag { padding: 3px 10px; background: #f3f4f6; border-radius: 9999px; font-size: 11px; font-weight: 500; color: #4b5563; text-transform: capitalize; }
+  .detail-card__salary { font-size: 14px; font-weight: 600; color: #10b981; margin: 0 0 10px; }
+  .detail-card__actions { display: flex; gap: 8px; }
+  .detail-card__bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  .detail-date { font-size: 12px; color: #9ca3af; }
   .status-badge { display: inline-block; padding: 3px 10px; border-radius: 9999px; font-size: 11px; font-weight: 500; }
   .status--pending { background: #fef3c7; color: #92400e; }
   .status--reviewed { background: #dbeafe; color: #1e40af; }
@@ -161,16 +167,72 @@ function renderDashboardPage(user) {
       </div>
       <div class="dashboard-grid">
         <div class="dashboard-card">
-          <div class="dashboard-card__header"><h2 class="dashboard-card__title">Recomendados</h2><a href="#/vacancies" class="dashboard-card__link">Ver todos →</a></div>
-          <div class="dashboard-card__body">${d.vacancies.length ? d.vacancies.map(v => `<div class="list-item"><div class="list-item__logo">${(v.companyName||'C')[0]}</div><div class="list-item__info"><p class="list-item__title">${v.title||''}</p><p class="list-item__sub">${v.companyName||''}</p></div><div class="list-item__action"><a href="#/vacancies/${v.id}" class="btn btn--sm btn--primary">Ver</a></div></div>`).join('') : '<p class="empty-state">Sin recomendaciones aún</p>'}</div>
+          <div class="dashboard-card__header"><h2 class="dashboard-card__title">Empleos Recomendados</h2><a href="#/vacancies" class="dashboard-card__link">Ver todos →</a></div>
+          <div class="dashboard-card__body">
+            ${d.vacancies.length ? d.vacancies.map(v => {
+              const modLabels = { remote: 'Remoto', hybrid: 'Híbrido', onsite: 'Presencial' };
+              return `<div class="detail-card">
+                <div class="detail-card__header">
+                  <div class="detail-card__logo">${(v.companyName||'C')[0]}</div>
+                  <div class="detail-card__info">
+                    <p class="detail-card__title">${v.title||'Puesto'}</p>
+                    <p class="detail-card__company">${v.companyName||'Empresa'}${v.city?` · ${v.city}`:''}</p>
+                  </div>
+                </div>
+                <div class="detail-card__tags">
+                  ${v.modality?`<span class="detail-tag">${modLabels[v.modality]||v.modality}</span>`:''}
+                  ${v.type?`<span class="detail-tag">${v.type}</span>`:''}
+                  ${v.level?`<span class="detail-tag">${v.level}</span>`:''}
+                </div>
+                ${v.salaryMin?`<p class="detail-card__salary">$${v.salaryMin.toLocaleString()} - $${(v.salaryMax||v.salaryMin).toLocaleString()} ${v.currency||''}</p>`:''}
+                <div class="detail-card__actions">
+                  <a href="#/vacancies/${v.id}" class="btn btn--sm btn--primary">Ver Detalles</a>
+                  <a href="#/vacancies/${v.id}" class="btn btn--sm btn--outline">Aplicar</a>
+                </div>
+              </div>`;
+            }).join('') : '<p class="empty-state">Sin recomendaciones aún</p>'}
+          </div>
         </div>
         <div class="dashboard-card">
-          <div class="dashboard-card__header"><h2 class="dashboard-card__title">Guardados</h2><a href="#panel:saved" class="dashboard-card__link" data-panel="saved">Ver todos →</a></div>
-          <div class="dashboard-card__body">${d.savedJobs.length ? d.savedJobs.map(j => { const v = j.vacancy||{}; return `<div class="list-item"><div class="list-item__logo">${(v.companyName||'C')[0]}</div><div class="list-item__info"><p class="list-item__title">${v.title||''}</p><p class="list-item__sub">${v.companyName||''}</p></div><div class="list-item__action"><a href="#/vacancies/${j.vacancyId}" class="btn btn--sm btn--outline">Ver</a></div></div>`; }).join('') : '<p class="empty-state">Sin empleos guardados</p>'}</div>
+          <div class="dashboard-card__header"><h2 class="dashboard-card__title">Empleos Guardados</h2><a href="#panel:saved" class="dashboard-card__link" data-panel="saved">Ver todos →</a></div>
+          <div class="dashboard-card__body">
+            ${d.savedJobs.length ? d.savedJobs.map(j => {
+              const v = j.vacancy||{};
+              return `<div class="detail-card">
+                <div class="detail-card__header">
+                  <div class="detail-card__logo">${(v.companyName||'C')[0]}</div>
+                  <div class="detail-card__info">
+                    <p class="detail-card__title">${v.title||'Puesto'}</p>
+                    <p class="detail-card__company">${v.companyName||''}${v.city?` · ${v.city}`:''}</p>
+                  </div>
+                </div>
+                <div class="detail-card__actions">
+                  <a href="#/vacancies/${j.vacancyId}" class="btn btn--sm btn--primary">Ver Detalles</a>
+                </div>
+              </div>`;
+            }).join('') : '<p class="empty-state">Sin empleos guardados</p>'}
+          </div>
         </div>
         <div class="dashboard-card">
-          <div class="dashboard-card__header"><h2 class="dashboard-card__title">Aplicaciones</h2><a href="#panel:applications" class="dashboard-card__link" data-panel="applications">Ver todas →</a></div>
-          <div class="dashboard-card__body">${d.applications.length ? d.applications.map(a => { const v = a.vacancy||{}; return `<div class="list-item"><div class="list-item__logo">${(v.companyName||'C')[0]}</div><div class="list-item__info"><p class="list-item__title">${v.title||''}</p><p class="list-item__sub">${v.companyName||''}</p></div><div class="list-item__status"><span class="status-badge status--${a.status}">${getStatusText(a.status)}</span></div></div>`; }).join('') : '<p class="empty-state">Sin aplicaciones</p>'}</div>
+          <div class="dashboard-card__header"><h2 class="dashboard-card__title">Mis Aplicaciones</h2><a href="#panel:applications" class="dashboard-card__link" data-panel="applications">Ver todas →</a></div>
+          <div class="dashboard-card__body">
+            ${d.applications.length ? d.applications.map(a => {
+              const v = a.vacancy||{};
+              return `<div class="detail-card">
+                <div class="detail-card__header">
+                  <div class="detail-card__logo">${(v.companyName||'C')[0]}</div>
+                  <div class="detail-card__info">
+                    <p class="detail-card__title">${v.title||'Puesto'}</p>
+                    <p class="detail-card__company">${v.companyName||''}</p>
+                  </div>
+                </div>
+                <div class="detail-card__bottom">
+                  <span class="status-badge status--${a.status}">${getStatusText(a.status)}</span>
+                  ${a.createdAt?`<span class="detail-date">${new Date(a.createdAt).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</span>`:''}
+                </div>
+              </div>`;
+            }).join('') : '<p class="empty-state">Sin aplicaciones</p>'}
+          </div>
         </div>
       </div>
     </div>
@@ -181,22 +243,29 @@ function renderDashboardPage(user) {
     <div class="section-panel" id="panel-saved" style="display:none;">
       <h1 class="dashboard-main__title">Empleos Guardados</h1>
       <p class="dashboard-main__subtitle">${d.savedJobs.length} empleo${d.savedJobs.length!==1?'s':''} guardado${d.savedJobs.length!==1?'s':''}</p>
-      ${d.savedJobs.length ? d.savedJobs.map(j => {
+      ${d.savedJobs.length ? `<div class="dashboard-grid">${d.savedJobs.map(j => {
         const v = j.vacancy||{};
-        return `<div class="dashboard-card" style="margin-bottom:16px;">
-          <div class="dashboard-card__body">
-            <div class="list-item" style="border:none;padding:12px 0;">
-              <div class="list-item__logo">${(v.companyName||'C')[0]}</div>
-              <div class="list-item__info">
-                <p class="list-item__title" style="font-size:16px;">${v.title||'Puesto'}</p>
-                <p class="list-item__sub">${v.companyName||''}${v.city?` · ${v.city}`:''}${v.modality?` · ${v.modality}`:''}</p>
-                ${v.salaryMin?`<p class="list-item__sub" style="color:#10b981;font-weight:500;">$${v.salaryMin.toLocaleString()} - $${v.salaryMax?.toLocaleString()} ${v.currency||''}</p>`:''}
+        const modLabels = { remote: 'Remoto', hybrid: 'Híbrido', onsite: 'Presencial' };
+        return `<div class="dashboard-card"><div class="dashboard-card__body">
+          <div class="detail-card" style="border:none;padding:0;margin:0;">
+            <div class="detail-card__header">
+              <div class="detail-card__logo">${(v.companyName||'C')[0]}</div>
+              <div class="detail-card__info">
+                <p class="detail-card__title">${v.title||'Puesto'}</p>
+                <p class="detail-card__company">${v.companyName||''}${v.city?` · ${v.city}`:''}</p>
               </div>
-              <div class="list-item__action"><a href="#/vacancies/${v.id}" class="btn btn--primary">Ver Detalles</a></div>
+            </div>
+            <div class="detail-card__tags">
+              ${v.modality?`<span class="detail-tag">${modLabels[v.modality]||v.modality}</span>`:''}
+              ${v.type?`<span class="detail-tag">${v.type}</span>`:''}
+            </div>
+            ${v.salaryMin?`<p class="detail-card__salary">$${v.salaryMin.toLocaleString()} - $${(v.salaryMax||v.salaryMin).toLocaleString()} ${v.currency||''}</p>`:''}
+            <div class="detail-card__actions">
+              <a href="#/vacancies/${v.id}" class="btn btn--sm btn--primary">Ver Detalles</a>
             </div>
           </div>
-        </div>`;
-      }).join('') : '<div class="dashboard-card"><div class="dashboard-card__body"><p class="empty-state" style="padding:40px 0;">No tienes empleos guardados</p></div></div>'}
+        </div></div>`;
+      }).join('')}</div>` : '<div class="dashboard-card"><div class="dashboard-card__body"><p class="empty-state" style="padding:40px 0;">No tienes empleos guardados</p></div></div>'}
     </div>
   `;
 
@@ -205,22 +274,30 @@ function renderDashboardPage(user) {
     <div class="section-panel" id="panel-applications" style="display:none;">
       <h1 class="dashboard-main__title">Mis Aplicaciones</h1>
       <p class="dashboard-main__subtitle">${d.applications.length} aplicacion${d.applications.length!==1?'es':''}</p>
-      ${d.applications.length ? d.applications.map(a => {
+      ${d.applications.length ? `<div class="dashboard-grid">${d.applications.map(a => {
         const v = a.vacancy||{};
-        return `<div class="dashboard-card" style="margin-bottom:16px;">
-          <div class="dashboard-card__body">
-            <div class="list-item" style="border:none;padding:12px 0;">
-              <div class="list-item__logo">${(v.companyName||'C')[0]}</div>
-              <div class="list-item__info">
-                <p class="list-item__title" style="font-size:16px;">${v.title||'Puesto'}</p>
-                <p class="list-item__sub">${v.companyName||''}</p>
-                <p class="list-item__sub">Aplicado el ${a.createdAt?new Date(a.createdAt).toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}):'—'}</p>
+        const modLabels = { remote: 'Remoto', hybrid: 'Híbrido', onsite: 'Presencial' };
+        return `<div class="dashboard-card"><div class="dashboard-card__body">
+          <div class="detail-card" style="border:none;padding:0;margin:0;">
+            <div class="detail-card__header">
+              <div class="detail-card__logo">${(v.companyName||'C')[0]}</div>
+              <div class="detail-card__info">
+                <p class="detail-card__title">${v.title||'Puesto'}</p>
+                <p class="detail-card__company">${v.companyName||''}${v.city?` · ${v.city}`:''}</p>
               </div>
-              <div class="list-item__status"><span class="status-badge status--${a.status}">${getStatusText(a.status)}</span></div>
+            </div>
+            <div class="detail-card__tags">
+              ${v.modality?`<span class="detail-tag">${modLabels[v.modality]||v.modality}</span>`:''}
+              ${v.type?`<span class="detail-tag">${v.type}</span>`:''}
+            </div>
+            ${v.salaryMin?`<p class="detail-card__salary">$${v.salaryMin.toLocaleString()} - $${(v.salaryMax||v.salaryMin).toLocaleString()} ${v.currency||''}</p>`:''}
+            <div class="detail-card__bottom">
+              <span class="status-badge status--${a.status}">${getStatusText(a.status)}</span>
+              <span class="detail-date">Aplicado el ${a.createdAt?new Date(a.createdAt).toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}):'—'}</span>
             </div>
           </div>
-        </div>`;
-      }).join('') : '<div class="dashboard-card"><div class="dashboard-card__body"><p class="empty-state" style="padding:40px 0;">No has enviado aplicaciones</p></div></div>'}
+        </div></div>`;
+      }).join('')}</div>` : '<div class="dashboard-card"><div class="dashboard-card__body"><p class="empty-state" style="padding:40px 0;">No has enviado aplicaciones</p></div></div>'}
     </div>
   `;
 
