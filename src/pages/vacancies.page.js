@@ -5,6 +5,8 @@ import {
   getAuthUiContext,
   renderContentState,
   renderSectionHeader,
+  renderVacancyCard,
+  resolveRequestErrorMessage,
   showLoading,
   renderNavbar,
   renderPage,
@@ -71,6 +73,7 @@ function getVacanciesHTML(
     primaryRole,
   });
   const { hasError = false, errorMessage = "" } = options;
+  const activeFilters = getActiveFilterItems(filters);
 
   const jobsHTML = hasError
     ? renderContentState({
@@ -82,7 +85,15 @@ function getVacanciesHTML(
         actionHref: "#/vacancies",
       })
     : vacancies.length > 0
-      ? vacancies.map((v) => getVacancyCardHTML(v)).join("\n")
+      ? vacancies
+          .map((vacancy) =>
+            renderVacancyCard({
+              vacancy,
+              showSaveAction: true,
+              detailHref: `#/vacancies/${vacancy.id}`,
+            }),
+          )
+          .join("\n")
       : renderContentState({
           title: "No se encontraron empleos",
           message: "Intenta con otros filtros o vuelve a intentarlo más tarde.",
@@ -104,7 +115,16 @@ function getVacanciesHTML(
     subtitle: hasError
       ? "Revisa tu conexión y vuelve a intentarlo."
       : "Descubre vacantes activas según tu perfil y preferencias.",
+    actions:
+      activeFilters.length > 0
+        ? `<span class="vacancies-filters__active-count">${activeFilters.length} filtro${activeFilters.length === 1 ? "" : "s"} activo${activeFilters.length === 1 ? "" : "s"}</span>`
+        : "",
   });
+
+  const activeFiltersHtml =
+    activeFilters.length > 0
+      ? `<div class="th-chip-list">${activeFilters.map((item) => `<span class="th-chip">${item.label}: ${item.value}</span>`).join("")}</div>`
+      : "";
 
   const mainContent = `
     <div class="container">
@@ -117,15 +137,15 @@ function getVacanciesHTML(
           <form class="vacancies-filters__form" id="filters-form">
             <div class="filter-group">
               <label class="filter-label">Buscar</label>
-              <input type="text" class="filter-input" id="filter-search" placeholder="Palabras clave..." value="${filters.search || ""}" />
+              <input type="text" class="filter-input" id="filter-search" placeholder="Palabras clave..." value="${filters.search || ""}" aria-label="Buscar por palabras clave" />
             </div>
             <div class="filter-group">
               <label class="filter-label">Ubicación</label>
-              <input type="text" class="filter-input" id="filter-city" placeholder="Ciudad..." value="${filters.city || ""}" />
+              <input type="text" class="filter-input" id="filter-city" placeholder="Ciudad..." value="${filters.city || ""}" aria-label="Filtrar por ciudad" />
             </div>
             <div class="filter-group">
               <label class="filter-label">Modalidad</label>
-              <select class="filter-select" id="filter-modality">
+              <select class="filter-select" id="filter-modality" aria-label="Filtrar por modalidad">
                 <option value="">Todas</option>
                 <option value="remote" ${filters.modality === "remote" ? "selected" : ""}>Remoto</option>
                 <option value="hybrid" ${filters.modality === "hybrid" ? "selected" : ""}>Híbrido</option>
@@ -134,7 +154,7 @@ function getVacanciesHTML(
             </div>
             <div class="filter-group">
               <label class="filter-label">Tipo</label>
-              <select class="filter-select" id="filter-type">
+              <select class="filter-select" id="filter-type" aria-label="Filtrar por tipo de contrato">
                 <option value="">Todos</option>
                 <option value="full-time" ${filters.type === "full-time" ? "selected" : ""}>Tiempo completo</option>
                 <option value="part-time" ${filters.type === "part-time" ? "selected" : ""}>Medio tiempo</option>
@@ -145,7 +165,7 @@ function getVacanciesHTML(
             </div>
             <div class="filter-group">
               <label class="filter-label">Nivel</label>
-              <select class="filter-select" id="filter-level">
+              <select class="filter-select" id="filter-level" aria-label="Filtrar por nivel de experiencia">
                 <option value="">Todos</option>
                 <option value="junior" ${filters.level === "junior" ? "selected" : ""}>Junior</option>
                 <option value="mid" ${filters.level === "mid" ? "selected" : ""}>Mid</option>
@@ -159,6 +179,8 @@ function getVacanciesHTML(
         </aside>
         <section class="vacancies-results">
           ${header}
+          ${activeFiltersHtml}
+          <p class="th-feedback th-feedback--info" id="vacancies-feedback" style="display:none;"></p>
           <div class="vacancies-grid">${jobsHTML}</div>
           ${paginationHTML}
         </section>
@@ -176,6 +198,7 @@ function getVacanciesHTML(
     .vacancies-filters__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb; }
     .vacancies-filters__title { font-size: 18px; font-weight: 600; margin: 0; }
     .vacancies-filters__clear { background: none; border: none; color: #3b82f6; cursor: pointer; font-size: 14px; }
+    .vacancies-filters__active-count { font-size: 12px; color: #475569; font-weight: 600; }
     .vacancies-filters__form { display: flex; flex-direction: column; gap: 20px; }
     .filter-label { display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 8px; }
     .filter-input, .filter-select {
@@ -189,6 +212,7 @@ function getVacanciesHTML(
       transition: all 0.2s; cursor: pointer;
     }
     .vacancy-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateY(-2px); }
+    .vacancy-card:focus-visible { outline: 3px solid rgba(59,130,246,0.35); outline-offset: 2px; }
     .vacancy-card__header { display: flex; gap: 16px; margin-bottom: 16px; }
     .vacancy-card__logo {
       width: 56px; height: 56px; border-radius: 12px; background: #f3f4f6;
@@ -206,6 +230,8 @@ function getVacanciesHTML(
       padding: 4px 12px; background: #f3f4f6; border-radius: 9999px; font-size: 12px; color: #374151;
     }
     .vacancy-card__actions { display: flex; gap: 12px; }
+    .vacancy-card .btn[disabled] { opacity: 0.9; cursor: not-allowed; }
+    .vacancies-grid .btn--saved { border-color: #bbf7d0; color: #166534; background: #f0fdf4; }
     .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 32px; }
     .pagination__btn {
       padding: 8px 16px; border: 1px solid #d1d5db; background: white; border-radius: 8px;
@@ -214,6 +240,8 @@ function getVacanciesHTML(
     .pagination__btn:hover { background: #f9fafb; }
     .pagination__btn--active { background: #3b82f6; color: white; border-color: #3b82f6; }
     .th-content-state { grid-column: 1 / -1; }
+    .th-chip-list { margin-bottom: 12px; }
+    .th-feedback { margin: 0 0 14px; }
     @media (max-width: 1024px) {
       .vacancies-layout { grid-template-columns: 1fr; }
       .vacancies-filters { position: static; }
@@ -228,56 +256,18 @@ function getVacanciesHTML(
   });
 }
 
-function getVacancyCardHTML(v) {
-  const modalityLabels = {
-    remote: "Remoto",
-    hybrid: "Híbrido",
-    onsite: "Presencial",
-  };
-  const typeLabels = {
-    "full-time": "Tiempo completo",
-    "part-time": "Medio tiempo",
-    contract: "Contrato",
-    freelance: "Freelance",
-    internship: "Prácticas",
-  };
-  const levelLabels = {
-    junior: "Junior",
-    mid: "Mid",
-    senior: "Senior",
-    lead: "Lead",
-    manager: "Manager",
+function getActiveFilterItems(filters = {}) {
+  const labels = {
+    search: "Busqueda",
+    city: "Ciudad",
+    modality: "Modalidad",
+    type: "Tipo",
+    level: "Nivel",
   };
 
-  return `
-    <article class="vacancy-card" data-vacancy-id="${v.id}">
-      <div class="vacancy-card__header">
-        <div class="vacancy-card__logo">${(v.companyName || "C")[0]}</div>
-        <div class="vacancy-card__info">
-          <p class="vacancy-card__company">${v.companyName || "Empresa"}</p>
-          <h3 class="vacancy-card__title">${v.title || "Puesto"}</h3>
-        </div>
-      </div>
-      <div class="vacancy-card__meta">
-        ${
-          v.city
-            ? `<span class="vacancy-card__meta-item">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-          ${v.city}${v.country ? `, ${v.country}` : ""}
-        </span>`
-            : ""
-        }
-        ${v.modality ? `<span class="vacancy-card__meta-item">${modalityLabels[v.modality] || v.modality}</span>` : ""}
-        ${v.type ? `<span class="vacancy-card__meta-item">${typeLabels[v.type] || v.type}</span>` : ""}
-        ${v.level ? `<span class="vacancy-card__meta-item">${levelLabels[v.level] || v.level}</span>` : ""}
-      </div>
-      ${v.salaryMin ? `<div class="vacancy-card__salary">$${v.salaryMin.toLocaleString()} - $${v.salaryMax?.toLocaleString()} ${v.currency || ""}</div>` : ""}
-      <div class="vacancy-card__actions">
-        <a href="#/vacancies/${v.id}" class="btn btn--primary">Ver Detalles</a>
-        <button class="btn btn--outline" data-save-job="${v.id}">Guardar</button>
-      </div>
-    </article>
-  `;
+  return Object.entries(filters)
+    .filter(([key, value]) => labels[key] && value)
+    .map(([key, value]) => ({ label: labels[key], value }));
 }
 
 function getPaginationHTML(pagination, filters) {
@@ -300,6 +290,14 @@ function getPaginationHTML(pagination, filters) {
 function initVacanciesEvents(filters) {
   const form = document.getElementById("filters-form");
   const clearBtn = document.getElementById("clear-filters");
+  const feedback = document.getElementById("vacancies-feedback");
+
+  const showFeedback = (message, type = "info") => {
+    if (!feedback) return;
+    feedback.textContent = message;
+    feedback.className = `th-feedback th-feedback--${type}`;
+    feedback.style.display = "block";
+  };
 
   if (form) {
     form.addEventListener("submit", (e) => {
@@ -338,23 +336,39 @@ function initVacanciesEvents(filters) {
       btn.disabled = true;
       const original = btn.textContent;
       btn.textContent = "Guardando...";
+      btn.classList.remove("btn--saved");
 
       try {
         await applicationService.saveJob(btn.getAttribute("data-save-job"));
         btn.textContent = "Guardado";
+        btn.classList.add("btn--saved");
+        showFeedback("Vacante guardada en tu lista.", "success");
       } catch (error) {
         console.error("Error saving job:", error);
         btn.disabled = false;
         btn.textContent = original;
+        showFeedback(
+          resolveRequestErrorMessage(
+            error,
+            "No se pudo guardar la vacante en este momento.",
+          ),
+          "error",
+        );
       }
     });
   });
 
   document.querySelectorAll(".vacancy-card").forEach((card) => {
     card.addEventListener("click", (e) => {
-      if (e.target.tagName !== "BUTTON" && e.target.tagName !== "A") {
-        window.location.hash = `#/vacancies/${card.getAttribute("data-vacancy-id")}`;
-      }
+      if (e.target.closest("button, a")) return;
+      window.location.hash = `#/vacancies/${card.getAttribute("data-vacancy-id")}`;
+    });
+
+    card.addEventListener("keydown", (e) => {
+      if (e.target !== card) return;
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      window.location.hash = `#/vacancies/${card.getAttribute("data-vacancy-id")}`;
     });
   });
 }

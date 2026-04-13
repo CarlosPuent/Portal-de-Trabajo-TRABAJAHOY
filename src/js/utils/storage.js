@@ -30,12 +30,20 @@ export const storage = {
 
     if (accessToken || refreshToken) {
       this.setTokens({ accessToken, refreshToken });
+    } else {
+      this.clearTokens();
     }
-    if (user) {
+
+    if (user && typeof user === "object" && !Array.isArray(user)) {
       this.setUser(user);
+    } else {
+      this.clearUser();
     }
+
     if (Array.isArray(roles)) {
       this.setRoles(roles);
+    } else {
+      this.clearRoles();
     }
   },
 
@@ -57,8 +65,17 @@ export const storage = {
     const accessToken = tokens?.accessToken || "";
     const refreshToken = tokens?.refreshToken || "";
 
-    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+    if (accessToken) {
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    }
+
+    if (refreshToken) {
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    }
   },
 
   getAccessToken() {

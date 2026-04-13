@@ -5,7 +5,11 @@ import { router } from "./core/router.js";
 import { storage } from "./utils/storage.js";
 import { authService } from "./services/auth.service.js";
 import { api } from "./services/api.js";
-import { ROLE, getDashboardRouteForRoles } from "./core/roles.js";
+import {
+  ROLE,
+  getDashboardRouteForRoles,
+  resolveRolesFromPayload,
+} from "./core/roles.js";
 import { renderNavbar, renderPage, renderRoleShell } from "./utils/ui.js";
 
 // Page controllers
@@ -131,23 +135,28 @@ function bindGlobalAuthUiEvents() {
 async function restoreSession() {
   const { accessToken, refreshToken, user, roles } = storage.getAuthSession();
   const storedRoles = Array.isArray(roles) ? roles : [];
-  const fallbackRoles = Array.isArray(user?.roles) ? user.roles : [];
-  const resolvedRoles = storedRoles.length > 0 ? storedRoles : fallbackRoles;
+  const resolvedRoles = resolveRolesFromPayload({ user, roles });
+  const hasUserObject = Boolean(
+    user && typeof user === "object" && !Array.isArray(user),
+  );
+  const hasAccessToken = Boolean(accessToken);
   const hasSessionArtifacts =
-    Boolean(accessToken) ||
+    hasAccessToken ||
     Boolean(refreshToken) ||
-    Boolean(user) ||
+    hasUserObject ||
     storedRoles.length > 0;
 
-  if (!accessToken) {
+  if (!hasAccessToken) {
     if (hasSessionArtifacts) {
+      console.warn("Discarding stale auth artifacts: missing access token.");
       store.clearAuth();
       storage.clearAuthSession();
     }
     return false;
   }
 
-  if (!user) {
+  if (!hasUserObject) {
+    console.warn("Discarding invalid session: missing user payload.");
     store.clearAuth();
     storage.clearAuthSession();
     return false;
@@ -172,6 +181,15 @@ async function restoreSession() {
       });
     } catch (error) {
       console.warn("Session restoration failed:", error?.message || error);
+      store.clearAuth();
+      storage.clearAuthSession();
+      return false;
+    }
+
+    if (store.getRoles().length === 0) {
+      console.warn(
+        "Discarding session: authenticated user has no assigned role.",
+      );
       store.clearAuth();
       storage.clearAuthSession();
       return false;

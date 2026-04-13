@@ -262,7 +262,7 @@ function getVacancyDetailHTML(vacancy, authContext) {
                       isAuthenticated
                         ? `<button class="btn btn--primary btn--full-width" id="apply-btn">Aplicar ahora</button>
                          <button class="btn btn--outline btn--full-width" id="save-job-btn">Guardar empleo</button>
-                         <p class="vacancy-detail__feedback" id="vacancy-feedback" style="display:none;"></p>`
+                         <p class="vacancy-detail__feedback" id="vacancy-feedback" role="status" aria-live="polite"></p>`
                         : `<a href="#/login" class="btn btn--primary btn--full-width">Iniciar sesión para aplicar</a>
                          <a href="#/register" class="btn btn--outline btn--full-width">Crear cuenta</a>`
                     }
@@ -393,14 +393,17 @@ function getVacancyDetailHTML(vacancy, authContext) {
           .additional-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f3f4f6; }
           .additional-label { color: #6b7280; }
           .additional-value { font-weight: 500; color: #111827; }
-          .vacancy-detail__sidebar { display: flex; flex-direction: column; gap: 20px; }
+          .vacancy-detail__sidebar { display: flex; flex-direction: column; gap: 20px; position: sticky; top: 92px; align-self: start; }
           .vacancy-detail__apply-card {
             background: white; padding: 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
           }
           .vacancy-detail__apply-title { font-size: 18px; font-weight: 600; color: #111827; margin: 0 0 12px; }
           .vacancy-detail__apply-text { color: #6b7280; margin: 0 0 20px; font-size: 14px; }
           .vacancy-detail__apply-actions { display: flex; flex-direction: column; gap: 12px; }
-          .vacancy-detail__feedback { margin: 4px 0 0; font-size: 13px; color: #b91c1c; }
+          .vacancy-detail__feedback { margin: 2px 0 0; font-size: 13px; color: #475569; min-height: 18px; }
+          .vacancy-detail__feedback--success { color: #166534; }
+          .vacancy-detail__feedback--error { color: #b91c1c; }
+          .vacancy-detail__apply-actions .btn[disabled] { opacity: 0.9; cursor: not-allowed; }
           .vacancy-detail__summary-card {
             background: white; padding: 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
           }
@@ -423,6 +426,7 @@ function getVacancyDetailHTML(vacancy, authContext) {
             background: none; border: none; font-size: 32px; color: #6b7280; cursor: pointer;
             padding: 0; width: 32px; height: 32px;
           }
+          .modal__close:hover { color: #111827; }
           .modal__form { padding: 24px; }
           .form-group { margin-bottom: 20px; }
           .form-label { display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 8px; }
@@ -436,6 +440,7 @@ function getVacancyDetailHTML(vacancy, authContext) {
           @media (max-width: 1024px) {
             .vacancy-detail { grid-template-columns: 1fr; }
             .vacancy-detail__sidebar { order: -1; }
+            .vacancy-detail__sidebar { position: static; }
           }
           @media (max-width: 768px) {
             .vacancy-detail__header { flex-direction: column; }
@@ -462,6 +467,18 @@ function initVacancyDetailEvents(vacancy) {
   const applyForm = document.getElementById("apply-form");
   const submitApply = document.getElementById("submit-apply");
 
+  const setFeedback = (message = "", type = "info") => {
+    if (!feedback) return;
+    feedback.textContent = message;
+    feedback.className = `vacancy-detail__feedback${
+      type === "success"
+        ? " vacancy-detail__feedback--success"
+        : type === "error"
+          ? " vacancy-detail__feedback--error"
+          : ""
+    }`;
+  };
+
   // Apply button - Show modal
   if (applyBtn) {
     applyBtn.addEventListener("click", () => {
@@ -475,20 +492,16 @@ function initVacancyDetailEvents(vacancy) {
       saveJobBtn.disabled = true;
       const original = saveJobBtn.textContent;
       saveJobBtn.textContent = "Guardando...";
+      setFeedback("");
       try {
         await applicationService.saveJob(vacancy.id);
         saveJobBtn.textContent = "✓ Guardado";
-        if (feedback) {
-          feedback.style.display = "none";
-        }
+        setFeedback("Vacante guardada en tu lista.", "success");
       } catch (error) {
         console.error("Error saving job:", error);
         saveJobBtn.disabled = false;
         saveJobBtn.textContent = original;
-        if (feedback) {
-          feedback.textContent = "No se pudo guardar el empleo.";
-          feedback.style.display = "block";
-        }
+        setFeedback("No se pudo guardar el empleo.", "error");
       }
     });
   }
@@ -524,10 +537,9 @@ function initVacancyDetailEvents(vacancy) {
 
       // Disable submit button
       submitApply.disabled = true;
+      submitApply.setAttribute("aria-busy", "true");
       submitApply.textContent = "Enviando...";
-      if (feedback) {
-        feedback.style.display = "none";
-      }
+      setFeedback("");
 
       try {
         await applicationService.applyToVacancy({
@@ -540,14 +552,12 @@ function initVacancyDetailEvents(vacancy) {
       } catch (error) {
         console.error("Error applying to vacancy:", error);
         submitApply.disabled = false;
+        submitApply.setAttribute("aria-busy", "false");
         submitApply.textContent = "Enviar solicitud";
-        if (feedback) {
-          feedback.textContent = resolveRequestErrorMessage(
-            error,
-            "No se pudo enviar la solicitud.",
-          );
-          feedback.style.display = "block";
-        }
+        setFeedback(
+          resolveRequestErrorMessage(error, "No se pudo enviar la solicitud."),
+          "error",
+        );
       }
     });
   }

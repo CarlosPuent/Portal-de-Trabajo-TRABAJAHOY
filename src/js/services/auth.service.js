@@ -4,6 +4,11 @@ import { store } from "@core/store";
 import { storage } from "@utils/storage";
 import { ROLE, resolveRolesFromPayload } from "@core/roles";
 
+const AUTH_ROLE_VALIDATION_ERROR =
+  "No se pudo validar el rol de tu cuenta al iniciar sesión. Inténtalo nuevamente.";
+const AUTH_ROLE_MISSING_ERROR =
+  "No pudimos iniciar sesión porque tu cuenta no tiene un rol asignado.";
+
 function extractPayload(response) {
   if (response && typeof response === "object") {
     if (response.data && typeof response.data === "object") {
@@ -87,13 +92,13 @@ export const authService = {
       } catch {
         store.clearAuth();
         storage.clearAuthSession();
-        throw new Error("No se pudo determinar el rol del usuario autenticado");
+        throw new Error(AUTH_ROLE_VALIDATION_ERROR);
       }
 
       if (store.getRoles().length === 0) {
         store.clearAuth();
         storage.clearAuthSession();
-        throw new Error("No se pudo determinar el rol del usuario autenticado");
+        throw new Error(AUTH_ROLE_MISSING_ERROR);
       }
     }
 
@@ -148,14 +153,25 @@ export const authService = {
    * Logout user
    */
   async logout() {
+    const hadSession = Boolean(
+      store.get("accessToken") ||
+      store.get("refreshToken") ||
+      storage.getAccessToken() ||
+      storage.getRefreshToken(),
+    );
+
+    // Local first: guarantees logout even if the request fails or the page reloads.
+    store.clearAuth();
+    storage.clearAuthSession();
+
+    if (!hadSession) {
+      return;
+    }
+
     try {
       await api.post("/auth/logout");
     } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      // Clear all auth data
-      store.clearAuth();
-      storage.clearAuthSession();
+      console.warn("Logout backend warning:", error?.message || error);
     }
   },
 

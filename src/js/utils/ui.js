@@ -1,4 +1,5 @@
 // UI Helpers
+import "../../styles/global.css";
 import {
   getDashboardRouteForRoles,
   getNavigationForRoles,
@@ -116,6 +117,107 @@ export function renderContentState({
       ${actionHref && actionLabel ? `<a href="${actionHref}" class="btn btn--primary">${actionLabel}</a>` : ""}
     </div>
   `;
+}
+
+export function renderVacancyCard({
+  vacancy = {},
+  showSaveAction = true,
+  detailHref = "",
+  saveButtonLabel = "Guardar",
+  saveButtonClass = "btn btn--outline",
+} = {}) {
+  const modalityLabels = {
+    remote: "Remoto",
+    hybrid: "Híbrido",
+    onsite: "Presencial",
+  };
+
+  const typeLabels = {
+    "full-time": "Tiempo completo",
+    "part-time": "Medio tiempo",
+    contract: "Contrato",
+    freelance: "Freelance",
+    internship: "Prácticas",
+  };
+
+  const levelLabels = {
+    junior: "Junior",
+    mid: "Mid",
+    senior: "Senior",
+    lead: "Lead",
+    manager: "Manager",
+    director: "Director",
+  };
+
+  const resolvedHref = detailHref || `#/vacancies/${vacancy.id}`;
+
+  return `
+    <article class="vacancy-card" data-vacancy-id="${vacancy.id}" tabindex="0" role="article" aria-label="Vacante ${vacancy.title || "Puesto"}">
+      <div class="vacancy-card__header">
+        <div class="vacancy-card__logo">${(vacancy.companyName || "C")[0]}</div>
+        <div class="vacancy-card__info">
+          <p class="vacancy-card__company">${vacancy.companyName || "Empresa"}</p>
+          <h3 class="vacancy-card__title">${vacancy.title || "Puesto"}</h3>
+        </div>
+      </div>
+
+      <div class="vacancy-card__meta">
+        ${
+          vacancy.city
+            ? `<span class="vacancy-card__meta-item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>${vacancy.city}${vacancy.country ? `, ${vacancy.country}` : ""}</span>`
+            : ""
+        }
+        ${vacancy.modality ? `<span class="vacancy-card__meta-item">${modalityLabels[vacancy.modality] || vacancy.modality}</span>` : ""}
+        ${vacancy.type ? `<span class="vacancy-card__meta-item">${typeLabels[vacancy.type] || vacancy.type}</span>` : ""}
+        ${vacancy.level ? `<span class="vacancy-card__meta-item">${levelLabels[vacancy.level] || vacancy.level}</span>` : ""}
+      </div>
+
+      ${vacancy.salaryMin ? `<div class="vacancy-card__salary">$${vacancy.salaryMin.toLocaleString()} - $${(vacancy.salaryMax || vacancy.salaryMin).toLocaleString()} ${vacancy.currency || ""}</div>` : ""}
+
+      <div class="vacancy-card__actions">
+        <a href="${resolvedHref}" class="btn btn--primary">Ver Detalles</a>
+        ${showSaveAction ? `<button class="${saveButtonClass}" data-save-job="${vacancy.id}">${saveButtonLabel}</button>` : ""}
+      </div>
+    </article>
+  `;
+}
+
+export function renderAuthShell({
+  variant = "login",
+  cardClass = "",
+  eyebrow = "",
+  title = "",
+  subtitle = "",
+  form = "",
+  footer = "",
+} = {}) {
+  return `
+    <section class="auth-page auth-page--${variant}">
+      <div class="auth-page__glow auth-page__glow--left"></div>
+      <div class="auth-page__glow auth-page__glow--right"></div>
+
+      <div class="auth-brand">
+        <a href="#/" aria-label="Volver al inicio">
+          <img src="/logoPortal.png" alt="Logo TrabajaHoy" class="auth-brand__logo" />
+        </a>
+      </div>
+
+      <section class="auth-card ${cardClass}" aria-labelledby="auth-title">
+        <header class="auth-card__header">
+          ${eyebrow ? `<p class="auth-card__eyebrow">${eyebrow}</p>` : ""}
+          <h1 class="auth-card__title" id="auth-title">${title}</h1>
+          ${subtitle ? `<p class="auth-card__subtitle">${subtitle}</p>` : ""}
+        </header>
+
+        ${form}
+        ${footer ? `<div class="auth-card__footer">${footer}</div>` : ""}
+      </section>
+    </section>
+  `;
+}
+
+export function renderAuthErrorBlock(id = "auth-form-error") {
+  return `<div class="auth-form__error" id="${id}" role="alert" aria-live="polite" style="display:none;"></div>`;
 }
 
 // ============================================================

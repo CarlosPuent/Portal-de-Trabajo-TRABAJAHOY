@@ -3,7 +3,14 @@ import { authService } from "@services/auth.service";
 import { config } from "@core/config";
 import { getDashboardRouteForRoles } from "@core/roles";
 import {
+  bindPasswordToggle,
+  createSubmitStateController,
+  setFormError,
+} from "@utils/auth-form";
+import {
   getAuthUiContext,
+  renderAuthErrorBlock,
+  renderAuthShell,
   resolveRequestErrorMessage,
   showLoading,
   renderNavbar,
@@ -25,151 +32,61 @@ export async function initLoginPage(params, query) {
 function renderLoginPage() {
   const navbar = renderNavbar({ activeRoute: "" });
 
-  const mainContent = `
-    <div class="auth-page auth-page--login">
-      <div class="auth-page__glow auth-page__glow--left"></div>
-      <div class="auth-page__glow auth-page__glow--right"></div>
-      <div class="login-page__logo-container">
-        <a href="#/">
-          <img src="/logoPortal.png" alt="Logo TrabajaHoy" class="login-page__logo" />
-        </a>
-      </div>
-      <div class="login-page__container">
-        <header class="login-page__header">
-          <h1 class="login-page__title">Iniciar Sesión</h1>
-          <p class="login-page__subtitle">¿No tienes cuenta? <a href="#/register" class="login-page__link">Crear Cuenta</a></p>
-        </header>
-        <form class="login-form" id="login-form">
-          <div class="login-form__error" id="login-error" style="display:none;"></div>
-          <div class="login-form__fields">
-            <div class="form-group">
-              <input type="email" id="login-email" class="form-input" placeholder="Correo Electrónico" required />
-            </div>
-            <div class="form-group form-group--password">
-              <input type="password" id="login-password" class="form-input" placeholder="Contraseña" required />
-              <button type="button" class="form-password-toggle" id="toggle-password" aria-label="Mostrar contraseña">
-                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-              </button>
-            </div>
-            <div class="form-actions">
-              <label class="form-checkbox">
-                <input type="checkbox" id="remember-me" class="form-checkbox__input" />
-                <span class="form-checkbox__label">Recuérdame</span>
-              </label>
-              <span class="form-link" aria-hidden="true">Olvidé la contraseña</span>
-            </div>
-          </div>
-          <button type="submit" class="btn btn--primary btn--full-width" id="login-btn">
-            Iniciar Sesión
-            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-              <polyline points="12 5 19 12 12 19"></polyline>
+  const form = `
+    <form class="auth-form" id="login-form" novalidate>
+      ${renderAuthErrorBlock("login-error")}
+
+      <div class="auth-form__fields">
+        <div class="auth-field">
+          <label class="sr-only" for="login-email">Correo electrónico</label>
+          <input type="email" id="login-email" class="auth-input" placeholder="Correo electrónico" autocomplete="email" required />
+        </div>
+
+        <div class="auth-field auth-field--password">
+          <label class="sr-only" for="login-password">Contraseña</label>
+          <input type="password" id="login-password" class="auth-input" placeholder="Contraseña" autocomplete="current-password" required />
+          <button type="button" class="auth-password-toggle" id="toggle-password" aria-label="Mostrar contraseña" aria-pressed="false">
+            <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
             </svg>
           </button>
-        </form>
+        </div>
+
+        <div class="auth-form__actions">
+          <label class="auth-checkbox" for="remember-me">
+            <input type="checkbox" id="remember-me" class="auth-checkbox__input" />
+            <span class="auth-checkbox__label">Recuérdame</span>
+          </label>
+          <span class="auth-form__hint" aria-hidden="true">Olvidé la contraseña</span>
+        </div>
       </div>
-    </div>
+
+      <button type="submit" class="btn btn--primary btn--full-width auth-submit" id="login-btn">
+        Iniciar Sesión
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </button>
+    </form>
   `;
 
-  const styles = `
-    .auth-page {
-      min-height: calc(100vh - 70px);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      overflow: hidden;
-      background: radial-gradient(circle at 10% 10%, #fff4de 0%, transparent 42%),
-                  radial-gradient(circle at 88% 16%, #e0f2fe 0%, transparent 40%),
-                  linear-gradient(120deg, #f8fafc 0%, #eef2ff 45%, #fefce8 100%);
-      padding: 40px 20px;
-    }
-    .auth-page__glow {
-      position: absolute;
-      width: 320px;
-      height: 320px;
-      border-radius: 50%;
-      filter: blur(40px);
-      opacity: 0.35;
-      pointer-events: none;
-    }
-    .auth-page__glow--left {
-      background: #fdba74;
-      left: -80px;
-      top: 40px;
-    }
-    .auth-page__glow--right {
-      background: #7dd3fc;
-      right: -100px;
-      bottom: 20px;
-    }
-    .login-page__logo-container { margin-bottom: 32px; }
-    .login-page__logo {
-      height: 60px;
-      width: auto;
-      cursor: pointer;
-      position: relative;
-      z-index: 1;
-    }
-    .login-page__container {
-      position: relative;
-      z-index: 1;
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(8px);
-      border: 1px solid #e5e7eb;
-      border-radius: 18px;
-      box-shadow: 0 24px 50px rgba(15, 23, 42, 0.15);
-      padding: 48px;
-      max-width: 500px;
-      width: 100%;
-    }
-    .login-page__header { text-align: center; margin-bottom: 32px; }
-    .login-page__title { font-size: 32px; font-weight: 700; color: #111827; margin: 0 0 12px; }
-    .login-page__subtitle { color: #6b7280; margin: 0; font-size: 15px; }
-    .login-page__link { color: #3b82f6; text-decoration: none; font-weight: 500; }
-    .login-page__link:hover { text-decoration: underline; }
-    .login-form { margin-bottom: 24px; }
-    .login-form__fields { display: flex; flex-direction: column; gap: 20px; margin-bottom: 24px; }
-    .form-input {
-      width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px;
-      font-size: 15px; transition: all 0.2s; font-family: inherit;
-    }
-    .form-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-    .form-group--password { position: relative; }
-    .form-password-toggle {
-      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-      background: none; border: none; cursor: pointer; color: #6b7280; padding: 4px;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .form-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .form-checkbox { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-    .form-checkbox__input { width: 18px; height: 18px; cursor: pointer; accent-color: #3b82f6; }
-    .form-checkbox__label { font-size: 14px; color: #374151; }
-    .form-link { color: #64748b; font-size: 13px; }
-    .login-form__error {
-      background: #fee2e2; color: #dc2626; padding: 12px; border-radius: 6px;
-      margin-bottom: 16px; font-size: 14px;
-    }
-    .login-form__error:not(:empty) { display: block; }
-    .spinner {
-      display: inline-block; width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3);
-      border-radius: 50%; border-top-color: #fff; animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @media (max-width: 768px) {
-      .login-page__container { padding: 32px 24px; }
-      .login-page__title { font-size: 28px; }
-    }
-  `;
+  const mainContent = renderAuthShell({
+    variant: "login",
+    cardClass: "auth-card--login",
+    eyebrow: "Acceso Candidato",
+    title: "Iniciar Sesión",
+    subtitle:
+      'Entra para postularte a vacantes y gestionar tu perfil. ¿No tienes cuenta? <a href="#/register" class="auth-card__subtitle-link">Crear Cuenta</a>',
+    form,
+    footer:
+      "Tus credenciales se usan solo para autenticar tu sesión en TrabajaHoy.",
+  });
 
   document.getElementById("app").innerHTML = renderPage({
     navbar,
     main: mainContent,
-    extraStyles: styles,
   });
 }
 
@@ -180,23 +97,13 @@ function initLoginEvents() {
   const submitBtn = document.getElementById("login-btn");
   const togglePasswordBtn = document.getElementById("toggle-password");
   const errorDiv = document.getElementById("login-error");
-  const defaultSubmitHtml = submitBtn.innerHTML;
+  const setSubmitting = createSubmitStateController({
+    submitButton: submitBtn,
+    controls: [emailInput, passwordInput],
+    loadingHtml: '<span class="auth-spinner"></span> Iniciando sesión...',
+  });
 
-  const setSubmitting = (isSubmitting) => {
-    submitBtn.disabled = isSubmitting;
-    emailInput.disabled = isSubmitting;
-    passwordInput.disabled = isSubmitting;
-    submitBtn.innerHTML = isSubmitting
-      ? '<span class="spinner"></span> Iniciando sesión...'
-      : defaultSubmitHtml;
-  };
-
-  if (togglePasswordBtn) {
-    togglePasswordBtn.addEventListener("click", () => {
-      passwordInput.type =
-        passwordInput.type === "password" ? "text" : "password";
-    });
-  }
+  bindPasswordToggle(togglePasswordBtn, passwordInput);
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -204,13 +111,12 @@ function initLoginEvents() {
     const password = passwordInput.value;
 
     if (!email || !password) {
-      errorDiv.textContent = "Por favor, completa todos los campos";
-      errorDiv.style.display = "block";
+      setFormError(errorDiv, "Ingresa tu correo y contraseña para continuar.");
       return;
     }
 
     setSubmitting(true);
-    errorDiv.style.display = "none";
+    setFormError(errorDiv);
 
     try {
       await authService.login({ email, password });
@@ -218,11 +124,11 @@ function initLoginEvents() {
       window.location.hash = `#${getDashboardRouteForRoles(roles, config.ROUTES.VACANCIES)}`;
     } catch (error) {
       console.error("Login error:", error);
-      errorDiv.textContent = resolveRequestErrorMessage(
+      const message = resolveRequestErrorMessage(
         error,
         "Error de autenticación. Verifica tus credenciales.",
       );
-      errorDiv.style.display = "block";
+      setFormError(errorDiv, message);
       setSubmitting(false);
     }
   });
