@@ -33,3 +33,12 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+.agents/
+.qwen/
+node_modules/
+dist/
+skills-lock.json
+.env
+.env.local
+test.html
