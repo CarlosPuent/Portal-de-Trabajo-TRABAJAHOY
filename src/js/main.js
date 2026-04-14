@@ -26,6 +26,8 @@ import { initApplicationsPage } from "@pages/applications.page.js";
 import { initResourcesPage } from "@pages/resources.page.js";
 import { initForumPage } from "@pages/forum.page.js";
 import { initCVPage } from "@pages/cv.page.js";
+import { initCreateVacancyPage } from "@pages/create-vacancy.page.js";
+import { initMyVacanciesPage } from "@pages/my-vacancies.page.js";
 
 let logoutInProgress = false;
 
@@ -273,6 +275,11 @@ function registerRoutes() {
     },
   );
 
+  router.on(config.ROUTES.MY_VACANCIES, initMyVacanciesPage, {
+    requiresAuth: true,
+    roles: [ROLE.RECRUITER, ROLE.ADMIN],
+  });
+
   router.on(
     config.ROUTES.COMPANY_PROFILE,
     createPlaceholderPage("Perfil de Empresa", "Información de tu empresa."),
@@ -282,17 +289,10 @@ function registerRoutes() {
     },
   );
 
-  router.on(
-    config.ROUTES.CREATE_VACANCY,
-    createPlaceholderPage(
-      "Crear Vacante",
-      "Publica una nueva oferta de empleo.",
-    ),
-    {
-      requiresAuth: true,
-      roles: [ROLE.RECRUITER, ROLE.ADMIN],
-    },
-  );
+  router.on(config.ROUTES.CREATE_VACANCY, initCreateVacancyPage, {
+    requiresAuth: true,
+    roles: [ROLE.RECRUITER, ROLE.ADMIN],
+  });
 
   // Admin routes
   router.on(

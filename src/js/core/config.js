@@ -58,6 +58,7 @@ export const config = {
     VACANCIES: "/vacancies",
     VACANCY_DETAIL: "/vacancies/:id",
     COMPANY_DASHBOARD: "/company/dashboard",
+    MY_VACANCIES: "/company/vacancies",
     COMPANY_PROFILE: "/company/profile",
     CREATE_VACANCY: "/company/vacancies/create",
     EDIT_VACANCY: "/company/vacancies/edit/:id",

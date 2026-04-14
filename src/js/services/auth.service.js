@@ -19,10 +19,121 @@ function extractPayload(response) {
   return {};
 }
 
+function normalizeCompanyMembershipEntry(entry = {}) {
+  if (!entry || typeof entry !== "object") {
+    return null;
+  }
+
+  const company =
+    entry.company && typeof entry.company === "object" ? entry.company : null;
+
+  const companyId =
+    entry.companyId ||
+    entry.company_id ||
+    company?.id ||
+    company?.companyId ||
+    company?.company_id ||
+    "";
+
+  if (!companyId) {
+    return null;
+  }
+
+  const companyName =
+    entry.companyName ||
+    entry.company_name ||
+    company?.name ||
+    company?.companyName ||
+    company?.company_name ||
+    company?.legalName ||
+    "";
+
+  return {
+    ...entry,
+    companyId: String(companyId).trim(),
+    companyName: String(companyName || "").trim(),
+  };
+}
+
+function collectCompanyMemberships(payload = {}, user = null) {
+  const sources = [
+    payload?.companyMembers,
+    payload?.company_members,
+    payload?.companyMemberships,
+    payload?.company_memberships,
+    payload?.memberships,
+    payload?.companyMembership,
+    payload?.company_membership,
+    user?.companyMembers,
+    user?.company_members,
+    user?.companyMemberships,
+    user?.company_memberships,
+    user?.memberships,
+    user?.companyMembership,
+    user?.company_membership,
+  ];
+
+  const asArray = sources.flatMap((source) =>
+    Array.isArray(source) ? source : source ? [source] : [],
+  );
+
+  const map = new Map();
+  asArray.forEach((item) => {
+    const normalized = normalizeCompanyMembershipEntry(item);
+    if (!normalized?.companyId) return;
+
+    const previous = map.get(normalized.companyId);
+    if (!previous || (!previous.companyName && normalized.companyName)) {
+      map.set(normalized.companyId, normalized);
+    }
+  });
+
+  return [...map.values()];
+}
+
+function enrichUserWithCompanyContext(user = null, payload = {}) {
+  if (!user || typeof user !== "object") {
+    return user;
+  }
+
+  const memberships = collectCompanyMemberships(payload, user);
+  const firstMembership = memberships[0] || null;
+
+  const resolvedCompanyId =
+    user.companyId ||
+    user.company_id ||
+    user.company?.id ||
+    user.company?.companyId ||
+    user.company?.company_id ||
+    firstMembership?.companyId ||
+    "";
+
+  const resolvedCompanyName =
+    user.companyName ||
+    user.company_name ||
+    user.company?.name ||
+    user.company?.companyName ||
+    user.company?.company_name ||
+    firstMembership?.companyName ||
+    "";
+
+  return {
+    ...user,
+    companyId: resolvedCompanyId ? String(resolvedCompanyId).trim() : undefined,
+    companyName: resolvedCompanyName
+      ? String(resolvedCompanyName).trim()
+      : undefined,
+    companyMembers: memberships,
+    company_members: memberships,
+    companyMemberships: memberships,
+    company_memberships: memberships,
+  };
+}
+
 function resolveSession(payload = {}) {
   const accessToken = payload?.accessToken || null;
   const refreshToken = payload?.refreshToken || null;
-  const user = payload?.user || null;
+  const user = enrichUserWithCompanyContext(payload?.user || null, payload);
   const roles = resolveRolesFromPayload(payload);
 
   return { accessToken, refreshToken, user, roles };
@@ -49,6 +160,10 @@ function persistAuthSession(payload = {}, options = {}) {
   storage.setAuthSession(session);
 
   return session;
+}
+
+function isUnauthorizedError(error) {
+  return error?.response?.status === 401;
 }
 
 export const authService = {
@@ -133,7 +248,7 @@ export const authService = {
   async fetchCurrentUserProfile() {
     const response = await api.get("/auth/me");
     const payload = extractPayload(response);
-    const user = payload?.user || null;
+    const user = enrichUserWithCompanyContext(payload?.user || null, payload);
     const roles = resolveRolesFromPayload(payload);
 
     if (!user) {
@@ -171,6 +286,12 @@ export const authService = {
     try {
       await api.post("/auth/logout");
     } catch (error) {
+      if (isUnauthorizedError(error)) {
+        console.warn(
+          "Logout warning: backend respondió 401, sesión local cerrada.",
+        );
+        return;
+      }
       console.warn("Logout backend warning:", error?.message || error);
     }
   },

@@ -18,6 +18,10 @@ function shouldSkipRefreshForRequest(requestUrl = "") {
   return normalizedUrl.includes("/auth/logout");
 }
 
+function isExpectedLogoutUnauthorizedError(error, shouldSkipRefresh) {
+  return shouldSkipRefresh && error?.response?.status === 401;
+}
+
 // Request interceptor - Add auth token
 apiClient.interceptors.request.use(
   (config) => {
@@ -40,6 +44,12 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     const shouldSkipRefresh = shouldSkipRefreshForRequest(originalRequest?.url);
+
+    if (isExpectedLogoutUnauthorizedError(error, shouldSkipRefresh)) {
+      // Logout can return 401 when token is already invalid/expired.
+      // The auth service handles this as a non-blocking warning.
+      return Promise.reject(error);
+    }
 
     // Handle 401 Unauthorized - Token expired
     if (

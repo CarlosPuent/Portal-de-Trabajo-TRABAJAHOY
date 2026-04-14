@@ -41,6 +41,7 @@ const ROLE_NAVIGATION = Object.freeze({
   ],
   [ROLE.RECRUITER]: [
     { href: `#${config.ROUTES.COMPANY_DASHBOARD}`, label: "Dashboard empresa" },
+    { href: `#${config.ROUTES.MY_VACANCIES}`, label: "Mis Vacantes" },
     { href: `#${config.ROUTES.COMPANY_PROFILE}`, label: "Perfil empresa" },
     { href: `#${config.ROUTES.CREATE_VACANCY}`, label: "Crear Vacante" },
   ],
