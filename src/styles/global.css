@@ -1,6 +1,3 @@
-/* Import existing landing styles from views/landing/landing.css */
-@import url("/views/landing/landing.css");
-
 /* Global styles */
 * {
   margin: 0;
