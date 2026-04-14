@@ -198,7 +198,7 @@ export function renderAuthShell({
 
       <div class="auth-brand">
         <a href="#/" aria-label="Volver al inicio">
-          <img src="/logoPortal.png" alt="Logo TrabajaHoy" class="auth-brand__logo" />
+          <img src="${import.meta.env.BASE_URL}logoPortal.png" alt="Logo TrabajaHoy" class="auth-brand__logo" />
         </a>
       </div>
 
