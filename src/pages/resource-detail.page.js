@@ -4,6 +4,7 @@ import { authService } from '@services/auth.service';
 import { store } from '@core/store';
 import { showLoading, renderNavbar, renderPage } from '@utils/ui.js';
 import { formatters } from '@utils/formatters.js';
+import { starFilled, renderStars as renderSvgStars } from '@utils/icons.js';
 
 export async function initResourceDetailPage(resourceId) {
   const isAuthenticated = store.get('isAuthenticated');
@@ -21,16 +22,21 @@ export async function initResourceDetailPage(resourceId) {
     const ratings = Array.isArray(ratingsData) ? ratingsData : (ratingsData?.data || []);
     const related = Array.isArray(relatedData) ? relatedData : (relatedData?.data || []);
 
-    document.getElementById('app').innerHTML = getDetailHTML(resource, ratings, related, resourceId, isAuthenticated, user);
-    initDetailEvents(resource, resourceId, isAuthenticated);
+    // Check if current user has already rated this resource
+    const hasRated = isAuthenticated && user && ratings.some(r =>
+      r.userId === user.id || r.user?.id === user.id
+    );
+
+    document.getElementById('app').innerHTML = getDetailHTML(resource, ratings, related, resourceId, isAuthenticated, user, hasRated);
+    initDetailEvents(resource, resourceId, isAuthenticated, hasRated);
   } catch (error) {
     console.error('Error loading resource:', error);
-    document.getElementById('app').innerHTML = getDetailHTML(null, [], [], resourceId, isAuthenticated, user);
-    initDetailEvents(null, resourceId, isAuthenticated);
+    document.getElementById('app').innerHTML = getDetailHTML(null, [], [], resourceId, isAuthenticated, user, false);
+    initDetailEvents(null, resourceId, isAuthenticated, false);
   }
 }
 
-function getDetailHTML(resource, ratings, related, resourceId, isAuthenticated, user) {
+function getDetailHTML(resource, ratings, related, resourceId, isAuthenticated, user, hasRated = false) {
   const navbar = renderNavbar({ activeRoute: 'resources', isAuthenticated, user });
 
   if (!resource) {
@@ -52,7 +58,7 @@ function getDetailHTML(resource, ratings, related, resourceId, isAuthenticated, 
       </a>
 
       <article class="rd-article">
-        ${resource.coverImageUrl ? `<img src="${resource.coverImageUrl}" alt="${resource.title}" class="rd-cover" />` : ''}
+        ${resource.coverUrl ? `<img src="${resource.coverUrl}" alt="${resource.title}" class="rd-cover" />` : ''}
         
         <div class="rd-header">
           ${resource.category?.name ? `<span class="rd-category">${resource.category.name}</span>` : ''}
@@ -61,18 +67,25 @@ function getDetailHTML(resource, ratings, related, resourceId, isAuthenticated, 
             ${resource.author ? `<span class="rd-meta-item">Por ${resource.author.firstName || ''} ${resource.author.lastName || ''}</span>` : ''}
             ${resource.publishedAt ? `<span class="rd-meta-item">${formatters.date(resource.publishedAt)}</span>` : ''}
             ${resource.readTimeMinutes ? `<span class="rd-meta-item">${resource.readTimeMinutes} min de lectura</span>` : ''}
-            ${avgRating ? `<span class="rd-meta-item rd-meta-item--rating">★ ${avgRating}</span>` : ''}
+            ${avgRating ? `<span class="rd-meta-item rd-meta-item--rating">${starFilled(14)} ${avgRating}</span>` : ''}
           </div>
         </div>
 
         <div class="rd-content">${resource.content || '<p>Sin contenido disponible.</p>'}</div>
 
         <!-- Rating Section -->
-        ${isAuthenticated ? `
+        ${isAuthenticated ? (hasRated ? `
+          <div class="rd-rating-section">
+            <div class="rd-already-rated">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#10b981" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              Ya calificaste este recurso. ¡Gracias por tu opinión!
+            </div>
+          </div>
+        ` : `
           <div class="rd-rating-section">
             <h3 class="rd-rating-title">¿Te fue útil este recurso?</h3>
             <div class="rd-stars" id="resource-stars">
-              ${[1,2,3,4,5].map(i => `<button type="button" class="rd-star" data-value="${i}">★</button>`).join('')}
+              ${[1,2,3,4,5].map(i => `<button type="button" class="rd-star" data-value="${i}">${starFilled(22)}</button>`).join('')}
             </div>
             <input type="hidden" id="resource-rating-value" value="0" />
             <div id="rating-feedback" style="display:none; margin-top:12px;">
@@ -80,7 +93,7 @@ function getDetailHTML(resource, ratings, related, resourceId, isAuthenticated, 
               <button class="btn btn--primary btn--sm" id="submit-rating" style="margin-top:8px;">Enviar Calificación</button>
             </div>
           </div>
-        ` : ''}
+        `) : ''}
 
         <!-- Ratings List -->
         ${ratings.length > 0 ? `
@@ -89,7 +102,7 @@ function getDetailHTML(resource, ratings, related, resourceId, isAuthenticated, 
             ${ratings.map(r => `
               <div class="rd-rating-item">
                 <div class="rd-rating-item__header">
-                  <div class="rd-rating-item__stars">${'★'.repeat(r.rating || 0)}${'☆'.repeat(5 - (r.rating || 0))}</div>
+                  <div class="rd-rating-item__stars">${renderSvgStars(r.rating || 0, 5, 14)}</div>
                   <span class="rd-rating-item__date">${formatters.relativeTime(r.createdAt)}</span>
                 </div>
                 ${r.review ? `<p class="rd-rating-item__text">${r.review}</p>` : ''}
@@ -141,6 +154,7 @@ function getDetailHTML(resource, ratings, related, resourceId, isAuthenticated, 
 
     .rd-rating-section { padding: 24px 32px; border-top: 1px solid #f3f4f6; text-align: center; }
     .rd-rating-title { font-size: 16px; color: #374151; margin: 0 0 12px; }
+    .rd-already-rated { display: inline-flex; align-items: center; gap: 8px; color: #059669; font-size: 15px; font-weight: 500; background: #ecfdf5; padding: 10px 20px; border-radius: 999px; }
     .rd-stars { display: flex; justify-content: center; gap: 6px; }
     .rd-star { background: none; border: none; font-size: 32px; color: #d1d5db; cursor: pointer; transition: all 0.15s; padding: 0; }
     .rd-star.active, .rd-star:hover { color: #f59e0b; transform: scale(1.1); }
@@ -171,7 +185,7 @@ function getDetailHTML(resource, ratings, related, resourceId, isAuthenticated, 
   return renderPage({ navbar, main: mainContent, pageClass: 'rd-page', extraStyles: styles });
 }
 
-function initDetailEvents(resource, resourceId, isAuthenticated) {
+function initDetailEvents(resource, resourceId, isAuthenticated, hasRated = false) {
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
@@ -179,36 +193,42 @@ function initDetailEvents(resource, resourceId, isAuthenticated) {
     });
   }
 
-  // Star rating interaction
-  const stars = document.querySelectorAll('.rd-star');
-  const feedback = document.getElementById('rating-feedback');
-  stars.forEach(star => {
-    star.addEventListener('click', () => {
-      const val = parseInt(star.dataset.value);
-      document.getElementById('resource-rating-value').value = val;
-      stars.forEach((s, i) => { s.classList.toggle('active', i < val); });
-      if (feedback) feedback.style.display = 'block';
+  // Star rating interaction — only when user hasn't rated yet
+  if (!hasRated) {
+    const stars = document.querySelectorAll('.rd-star');
+    const feedback = document.getElementById('rating-feedback');
+    stars.forEach(star => {
+      star.addEventListener('click', () => {
+        const val = parseInt(star.dataset.value);
+        document.getElementById('resource-rating-value').value = val;
+        stars.forEach((s, i) => { s.classList.toggle('active', i < val); });
+        if (feedback) feedback.style.display = 'block';
+      });
+      star.addEventListener('mouseenter', () => {
+        const val = parseInt(star.dataset.value);
+        stars.forEach((s, i) => { s.style.color = i < val ? '#f59e0b' : '#d1d5db'; });
+      });
     });
-    star.addEventListener('mouseenter', () => {
-      const val = parseInt(star.dataset.value);
-      stars.forEach((s, i) => { s.style.color = i < val ? '#f59e0b' : '#d1d5db'; });
+    document.getElementById('resource-stars')?.addEventListener('mouseleave', () => {
+      const current = parseInt(document.getElementById('resource-rating-value')?.value || 0);
+      stars.forEach((s, i) => { s.style.color = i < current ? '#f59e0b' : '#d1d5db'; });
     });
-  });
-  document.getElementById('resource-stars')?.addEventListener('mouseleave', () => {
-    const current = parseInt(document.getElementById('resource-rating-value')?.value || 0);
-    stars.forEach((s, i) => { s.style.color = i < current ? '#f59e0b' : '#d1d5db'; });
-  });
 
-  // Submit rating
-  document.getElementById('submit-rating')?.addEventListener('click', async () => {
-    const rating = parseInt(document.getElementById('resource-rating-value').value);
-    const review = document.getElementById('rating-review')?.value.trim() || undefined;
-    if (!rating || rating < 1) return;
+    // Submit rating
+    document.getElementById('submit-rating')?.addEventListener('click', async () => {
+      const rating = parseInt(document.getElementById('resource-rating-value').value);
+      const review = document.getElementById('rating-review')?.value.trim() || undefined;
+      if (!rating || rating < 1) return;
 
-    try {
-      await resourceService.rateResource(resourceId, rating, review);
-      store.addToast({ type: 'success', message: '¡Gracias por tu calificación!' });
-      window.location.reload();
+      try {
+        await resourceService.rateResource(resourceId, rating, review);
+        store.addToast({ type: 'success', message: '¡Gracias por tu calificación!' });
+        window.location.reload();
+      } catch (err) {
+        store.addToast({ type: 'error', message: err.response?.data?.message || 'Error al enviar calificación' });
+      }
+    });
+  }
     } catch (err) {
       store.addToast({ type: 'error', message: err.response?.data?.message || 'Error al enviar calificación' });
     }

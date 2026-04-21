@@ -4,6 +4,7 @@ import { authService } from '@services/auth.service';
 import { store } from '@core/store';
 import { showLoading, renderNavbar, renderPage } from '@utils/ui.js';
 import { formatters } from '@utils/formatters.js';
+import { pin, lock, flag, trash } from '@utils/icons.js';
 
 export async function initForumThreadPage(threadId) {
   const isAuthenticated = store.get('isAuthenticated');
@@ -60,8 +61,8 @@ function getThreadHTML(thread, posts, threadId, isAuthenticated, user) {
             <strong class="ft-thread__author-name">${authorName}</strong>
             <span class="ft-thread__date">${formatters.relativeTime(thread.createdAt)}</span>
           </div>
-          ${thread.isPinned ? '<span class="ft-pin-badge">📌 Fijado</span>' : ''}
-          ${thread.isLocked ? '<span class="ft-lock-badge">🔒 Cerrado</span>' : ''}
+          ${thread.isPinned ? `<span class="ft-pin-badge">${pin} Fijado</span>` : ''}
+          ${thread.isLocked ? `<span class="ft-lock-badge">${lock} Cerrado</span>` : ''}
           <div class="ft-thread__actions">
             ${isAuthenticated ? `<button class="ft-action-btn" id="report-thread-btn" title="Reportar">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
@@ -93,8 +94,8 @@ function getThreadHTML(thread, posts, threadId, isAuthenticated, user) {
                   <strong class="ft-post__name">${pName}</strong>
                   <span class="ft-post__date">${formatters.relativeTime(post.createdAt)}</span>
                   <div class="ft-post__actions">
-                    ${isAuthenticated ? `<button class="ft-small-btn report-post-btn" data-post-id="${post.id}" title="Reportar">🚩</button>` : ''}
-                    ${isAdmin || pAuthor.id === userId ? `<button class="ft-small-btn delete-post-btn" data-post-id="${post.id}" title="Eliminar">🗑️</button>` : ''}
+                    ${isAuthenticated ? `<button class="ft-small-btn report-post-btn" data-post-id="${post.id}" title="Reportar">${flag}</button>` : ''}
+                    ${isAdmin || pAuthor.id === userId ? `<button class="ft-small-btn delete-post-btn" data-post-id="${post.id}" title="Eliminar">${trash}</button>` : ''}
                   </div>
                 </div>
                 <div class="ft-post__content">${post.content || ''}</div>
@@ -124,7 +125,7 @@ function getThreadHTML(thread, posts, threadId, isAuthenticated, user) {
         </div>
       ` : thread?.isLocked ? `
         <div class="ft-locked-msg">
-          <p>🔒 Este hilo ha sido cerrado y no acepta nuevas respuestas.</p>
+          <p>${lock} Este hilo ha sido cerrado y no acepta nuevas respuestas.</p>
         </div>
       ` : `
         <div class="ft-locked-msg">

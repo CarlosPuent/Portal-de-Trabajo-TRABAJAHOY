@@ -5,28 +5,58 @@ import { applicationService } from '@services/application.service';
 import { authService } from '@services/auth.service';
 import { store } from '@core/store';
 import { showLoading, renderNavbar, renderPage } from '@utils/ui.js';
+import { check, gift } from '@utils/icons.js';
+
+/** Extract companyId from any known field shape the backend might return. */
+function resolveUserCompanyId(user) {
+  if (!user) return null;
+  const id =
+    user.companyId ||
+    user.company_id ||
+    user.company?.id ||
+    user.company?.companyId ||
+    user.ownedCompany?.[0]?.id ||
+    user.recruiterProfile?.companyId ||
+    user.recruiter_profile?.company_id ||
+    user.recruiter?.companyId ||
+    user.membership?.companyId ||
+    user.companyMembership?.companyId ||
+    user.companyMembers?.[0]?.companyId ||
+    user.companyMembers?.[0]?.company?.id ||
+    user.companyMemberships?.[0]?.companyId ||
+    user.companyMemberships?.[0]?.company?.id ||
+    user.memberships?.[0]?.companyId ||
+    user.memberships?.[0]?.company?.id ||
+    '';
+  return String(id).trim() || null;
+}
 
 export async function initCompanyProfilePage(params, query) {
   const isAuthenticated = store.get('isAuthenticated');
-  const user = store.get('user');
+  let user = store.get('user');
 
   showLoading('Cargando perfil de empresa...');
 
   try {
-    // Resolve user's company: prefer direct lookup by companyId (set at login),
-    // fall back to listing all companies and matching by member.
-    const userCompanyId = user?.companyId;
-    let company = null;
+    // Try to resolve companyId from current session
+    let userCompanyId = resolveUserCompanyId(user);
 
+    // If not found in local session, refresh from backend — /auth/me may include
+    // recruiter profile with companyId that wasn't in the original login payload.
+    if (!userCompanyId) {
+      try {
+        const profileData = await authService.fetchCurrentUserProfile();
+        user = store.get('user'); // store is updated by fetchCurrentUserProfile
+        userCompanyId = resolveUserCompanyId(profileData?.user || user);
+      } catch (e) {
+        console.warn('No se pudo refrescar el perfil del usuario:', e);
+      }
+    }
+
+    let company = null;
     if (userCompanyId) {
       const raw = await companyService.getCompanyById(userCompanyId).catch(() => null);
       company = raw?.data || raw || null;
-    }
-
-    if (!company) {
-      const companiesData = await companyService.getCompanies().catch(() => []);
-      const companies = Array.isArray(companiesData) ? companiesData : (companiesData?.data || []);
-      company = companies.find(c => c.members?.some(m => m.userId === user?.id)) || null;
     }
 
     let locations = [];
@@ -87,7 +117,7 @@ function getCompanyProfileHTML(company, locations, benefits, members, vacancies,
           <div class="cp-hero__text">
             <div class="cp-hero__name-row">
               <h1 class="cp-hero__name">${company.name || 'Mi Empresa'}</h1>
-              ${company.isVerified ? '<span class="cp-hero__verified" title="Empresa verificada">✓ Verificada</span>' : ''}
+              ${company.isVerified ? `<span class="cp-hero__verified" title="Empresa verificada">${check} Verificada</span>` : ''}
             </div>
             <p class="cp-hero__industry">${company.industry || 'Industria no especificada'}</p>
             <div class="cp-hero__meta">
@@ -159,7 +189,7 @@ function getCompanyProfileHTML(company, locations, benefits, members, vacancies,
             <div class="cp-benefits-grid">
               ${benefits.map(b => `
                 <div class="cp-benefit-item">
-                  <div class="cp-benefit-item__icon">🎁</div>
+                  <div class="cp-benefit-item__icon">${gift}</div>
                   <div>
                     <div class="cp-benefit-item__name">${b.name}</div>
                     ${b.description ? `<div class="cp-benefit-item__desc">${b.description}</div>` : ''}

@@ -13,7 +13,7 @@ export async function initAdminResourcesPage(params, query) {
 
   try {
     const [resData, catData] = await Promise.all([
-      resourceService.getResources({ limit: 100, isPublished: '' }).catch(() => []),
+      resourceService.getResources({ limit: 100 }).catch(() => []),
       resourceService.getCategories().catch(() => []),
     ]);
     const resources = Array.isArray(resData) ? resData : (resData?.data || []);
@@ -31,8 +31,8 @@ export async function initAdminResourcesPage(params, query) {
 function getAdminResourcesHTML(resources, categories, isAuthenticated, user) {
   const navbar = renderNavbar({ activeRoute: '', isAuthenticated, user });
 
-  const published = resources.filter(r => r.isPublished);
-  const drafts = resources.filter(r => !r.isPublished);
+  const published = resources.filter(r => r.status === 'published');
+  const drafts = resources.filter(r => r.status !== 'published');
 
   const resourceRow = (r) => `
     <div class="ar-row" data-id="${r.id}">
@@ -40,14 +40,14 @@ function getAdminResourcesHTML(resources, categories, isAuthenticated, user) {
         <h3 class="ar-row__title">${r.title || 'Sin título'}</h3>
         <div class="ar-row__meta">
           ${r.category?.name ? `<span class="ar-tag ar-tag--blue">${r.category.name}</span>` : ''}
-          <span class="ar-tag ${r.isPublished ? 'ar-tag--green' : 'ar-tag--gray'}">${r.isPublished ? 'Publicado' : 'Borrador'}</span>
+          <span class="ar-tag ${r.status === 'published' ? 'ar-tag--green' : 'ar-tag--gray'}">${r.status === 'published' ? 'Publicado' : 'Borrador'}</span>
           ${r.readTimeMinutes ? `<span class="ar-row__time">${r.readTimeMinutes} min</span>` : ''}
           <span class="ar-row__date">${formatters.relativeTime(r.updatedAt || r.createdAt)}</span>
         </div>
       </div>
       <div class="ar-row__actions">
         <button class="btn btn--outline btn--sm edit-resource-btn" data-id="${r.id}">Editar</button>
-        ${r.isPublished
+        ${r.status === 'published'
           ? `<button class="btn btn--outline btn--sm archive-resource-btn" data-id="${r.id}">Archivar</button>`
           : `<button class="btn btn--primary btn--sm publish-resource-btn" data-id="${r.id}">Publicar</button>`
         }
@@ -214,8 +214,8 @@ function initAdminResourcesEvents(resources, categories) {
         const r = resources.find(res => res.id === row.dataset.id);
         if (!r) return;
         if (filter === 'all') { row.style.display = ''; }
-        else if (filter === 'published') { row.style.display = r.isPublished ? '' : 'none'; }
-        else { row.style.display = !r.isPublished ? '' : 'none'; }
+        else if (filter === 'published') { row.style.display = r.status === 'published' ? '' : 'none'; }
+        else { row.style.display = r.status !== 'published' ? '' : 'none'; }
       });
     });
   });
@@ -238,8 +238,8 @@ function initAdminResourcesEvents(resources, categories) {
       document.getElementById('res-title').value = r.title || '';
       document.getElementById('res-category').value = r.categoryId || '';
       document.getElementById('res-read-time').value = r.readTimeMinutes || '';
-      document.getElementById('res-excerpt').value = r.excerpt || '';
-      document.getElementById('res-cover').value = r.coverImageUrl || '';
+      document.getElementById('res-excerpt').value = r.summary || '';
+      document.getElementById('res-cover').value = r.coverUrl || '';
       document.getElementById('res-content').value = r.content || '';
       if (modal) modal.style.display = 'flex';
     });
@@ -261,10 +261,10 @@ function initAdminResourcesEvents(resources, categories) {
       title: document.getElementById('res-title').value.trim(),
       categoryId: document.getElementById('res-category').value || undefined,
       readTimeMinutes: document.getElementById('res-read-time').value ? parseInt(document.getElementById('res-read-time').value) : undefined,
-      excerpt: document.getElementById('res-excerpt').value.trim() || undefined,
-      coverImageUrl: document.getElementById('res-cover').value.trim() || undefined,
+      summary: document.getElementById('res-excerpt').value.trim() || undefined,
+      coverUrl: document.getElementById('res-cover').value.trim() || undefined,
       content: document.getElementById('res-content').value.trim(),
-      isPublished: publishOnSave,
+      status: publishOnSave ? 'published' : 'draft',
       ...(publishOnSave ? { publishedAt: new Date().toISOString() } : {}),
     };
 
@@ -287,7 +287,7 @@ function initAdminResourcesEvents(resources, categories) {
   document.querySelectorAll('.publish-resource-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       try {
-        await resourceService.updateResource(btn.dataset.id, { isPublished: true, publishedAt: new Date().toISOString() });
+        await resourceService.updateResource(btn.dataset.id, { status: 'published', publishedAt: new Date().toISOString() });
         store.addToast({ type: 'success', message: 'Recurso publicado' });
         window.location.reload();
       } catch (err) {
@@ -300,7 +300,7 @@ function initAdminResourcesEvents(resources, categories) {
   document.querySelectorAll('.archive-resource-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       try {
-        await resourceService.updateResource(btn.dataset.id, { isPublished: false });
+        await resourceService.updateResource(btn.dataset.id, { status: 'draft' });
         store.addToast({ type: 'success', message: 'Recurso archivado' });
         window.location.reload();
       } catch (err) {

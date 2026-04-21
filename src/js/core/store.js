@@ -162,7 +162,7 @@ class Store {
   }
 
   isRecruiter() {
-    return this.hasRole("recruiter");
+    return this.hasAnyRole(["recruiter", "company_admin"]);
   }
 
   isAdmin() {

@@ -4,6 +4,7 @@ import { authService } from '@services/auth.service';
 import { store } from '@core/store';
 import { showLoading, renderNavbar, renderPage } from '@utils/ui.js';
 import { formatters } from '@utils/formatters.js';
+import { eye, calendar, checkCircle, xCircle, clock } from '@utils/icons.js';
 
 export async function initApplicantDetailPage(applicationId) {
   const isAuthenticated = store.get('isAuthenticated');
@@ -31,11 +32,11 @@ export async function initApplicantDetailPage(applicationId) {
 }
 
 const STATUS_MAP = {
-  pending: { label: 'Pendiente', color: '#f59e0b', bg: '#fef3c7', icon: '⏳' },
-  reviewed: { label: 'Revisado', color: '#3b82f6', bg: '#dbeafe', icon: '👁️' },
-  interview: { label: 'Entrevista', color: '#8b5cf6', bg: '#ede9fe', icon: '📅' },
-  accepted: { label: 'Contratado', color: '#059669', bg: '#d1fae5', icon: '✅' },
-  rejected: { label: 'Rechazado', color: '#dc2626', bg: '#fee2e2', icon: '❌' },
+  pending:   { label: 'Pendiente',  color: '#f59e0b', bg: '#fef3c7', icon: clock },
+  reviewed:  { label: 'Revisado',   color: '#3b82f6', bg: '#dbeafe', icon: eye },
+  interview: { label: 'Entrevista', color: '#8b5cf6', bg: '#ede9fe', icon: calendar },
+  accepted:  { label: 'Contratado', color: '#059669', bg: '#d1fae5', icon: checkCircle },
+  rejected:  { label: 'Rechazado',  color: '#dc2626', bg: '#fee2e2', icon: xCircle },
 };
 
 function getDetailHTML(app, history, comments, applicationId, isAuthenticated, user) {

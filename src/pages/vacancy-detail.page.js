@@ -10,6 +10,7 @@ import {
   renderNavbar,
   renderPage,
 } from "@utils/ui.js";
+import { check } from "@utils/icons.js";
 
 export async function initVacancyDetailPage(vacancyId) {
   const app = document.getElementById("app");
@@ -128,7 +129,10 @@ function getVacancyDetailHTML(vacancy, authContext) {
                       ${(vacancy.companyName || "C")[0]}
                     </div>
                     <div class="vacancy-detail__info">
-                      <p class="vacancy-detail__company">${vacancy.companyName || "Empresa"}</p>
+                      ${vacancy.companyId
+                        ? `<a href="#/companies/${vacancy.companyId}" class="vacancy-detail__company-link">${vacancy.companyName || 'Empresa'}</a>`
+                        : `<p class="vacancy-detail__company">${vacancy.companyName || 'Empresa'}</p>`
+                      }
                       <h1 class="vacancy-detail__title">${vacancy.title}</h1>
                       <div class="vacancy-detail__meta">
                         ${
@@ -277,8 +281,15 @@ function getVacancyDetailHTML(vacancy, authContext) {
                         ? `
                       <li class="summary-item">
                         <span class="summary-item__label">Empresa</span>
-                        <span class="summary-item__value">${vacancy.companyName}</span>
+                        ${vacancy.companyId
+                          ? `<a href="#/companies/${vacancy.companyId}" class="summary-item__value summary-item__link">${vacancy.companyName}</a>`
+                          : `<span class="summary-item__value">${vacancy.companyName}</span>`
+                        }
                       </li>
+                      ${vacancy.companyId ? `
+                      <li class="summary-item">
+                        <a href="#/companies/${vacancy.companyId}" class="btn btn--outline btn--sm btn--full-width" style="text-align:center;margin-top:4px;">Ver perfil de empresa →</a>
+                      </li>` : ''}
                     `
                         : ""
                     }
@@ -372,6 +383,10 @@ function getVacancyDetailHTML(vacancy, authContext) {
             color: #6b7280; font-size: 36px; flex-shrink: 0;
           }
           .vacancy-detail__company { font-size: 16px; color: #6b7280; margin: 0 0 8px; }
+          .vacancy-detail__company-link { font-size: 16px; color: #3b82f6; margin: 0 0 8px; display: block; text-decoration: none; font-weight: 500; }
+          .vacancy-detail__company-link:hover { text-decoration: underline; }
+          .summary-item__link { color: #3b82f6; text-decoration: none; font-weight: 500; }
+          .summary-item__link:hover { text-decoration: underline; }
           .vacancy-detail__title { font-size: 28px; font-weight: 700; color: #111827; margin: 0 0 16px; }
           .vacancy-detail__meta { display: flex; flex-wrap: wrap; gap: 16px; }
           .vacancy-detail__meta-item { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #6b7280; }
@@ -495,7 +510,7 @@ function initVacancyDetailEvents(vacancy) {
       setFeedback("");
       try {
         await applicationService.saveJob(vacancy.id);
-        saveJobBtn.textContent = "✓ Guardado";
+        saveJobBtn.innerHTML = `${check} Guardado`;
         setFeedback("Vacante guardada en tu lista.", "success");
       } catch (error) {
         console.error("Error saving job:", error);

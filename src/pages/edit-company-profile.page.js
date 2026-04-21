@@ -4,25 +4,53 @@ import { authService } from '@services/auth.service';
 import { store } from '@core/store';
 import { showLoading, renderNavbar, renderPage } from '@utils/ui.js';
 
+/** Extract companyId from any known field shape the backend might return. */
+function resolveUserCompanyId(user) {
+  if (!user) return null;
+  const id =
+    user.companyId ||
+    user.company_id ||
+    user.company?.id ||
+    user.company?.companyId ||
+    user.ownedCompany?.[0]?.id ||
+    user.recruiterProfile?.companyId ||
+    user.recruiter_profile?.company_id ||
+    user.recruiter?.companyId ||
+    user.membership?.companyId ||
+    user.companyMembership?.companyId ||
+    user.companyMembers?.[0]?.companyId ||
+    user.companyMembers?.[0]?.company?.id ||
+    user.companyMemberships?.[0]?.companyId ||
+    user.companyMemberships?.[0]?.company?.id ||
+    user.memberships?.[0]?.companyId ||
+    user.memberships?.[0]?.company?.id ||
+    '';
+  return String(id).trim() || null;
+}
+
 export async function initEditCompanyProfilePage(params, query) {
   const isAuthenticated = store.get('isAuthenticated');
-  const user = store.get('user');
+  let user = store.get('user');
 
   showLoading('Cargando editor de perfil...');
 
   try {
-    const userCompanyId = user?.companyId;
-    let company = null;
+    let userCompanyId = resolveUserCompanyId(user);
 
+    if (!userCompanyId) {
+      try {
+        const profileData = await authService.fetchCurrentUserProfile();
+        user = store.get('user');
+        userCompanyId = resolveUserCompanyId(profileData?.user || user);
+      } catch (e) {
+        console.warn('No se pudo refrescar el perfil del usuario:', e);
+      }
+    }
+
+    let company = null;
     if (userCompanyId) {
       const raw = await companyService.getCompanyById(userCompanyId).catch(() => null);
       company = raw?.data || raw || null;
-    }
-
-    if (!company) {
-      const companiesData = await companyService.getCompanies().catch(() => []);
-      const companies = Array.isArray(companiesData) ? companiesData : (companiesData?.data || []);
-      company = companies.find(c => c.members?.some(m => m.userId === user?.id)) || null;
     }
 
     document.getElementById('app').innerHTML = getEditHTML(company, isAuthenticated, user);

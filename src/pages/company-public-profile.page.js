@@ -7,6 +7,7 @@ import { authService } from '@services/auth.service';
 import { store } from '@core/store';
 import { showLoading, renderNavbar, renderPage } from '@utils/ui.js';
 import { formatters, formatSalaryRange } from '@utils/formatters.js';
+import { check, mapPin, sparkle, thumbsUp, thumbsDown, starFilled, starEmpty, renderStars as renderSvgStars } from '@utils/icons.js';
 
 export async function initCompanyPublicProfilePage(companyId) {
   const isAuthenticated = store.get('isAuthenticated');
@@ -44,8 +45,7 @@ export async function initCompanyPublicProfilePage(companyId) {
 }
 
 function renderStars(rating, max = 5) {
-  const full = Math.round(rating || 0);
-  return '★'.repeat(full) + '☆'.repeat(max - full);
+  return renderSvgStars(Math.round(rating || 0), max, 14);
 }
 
 function getPublicProfileHTML(company, locations, benefits, vacancies, reviews, summary, companyId, isAuthenticated, user) {
@@ -81,14 +81,14 @@ function getPublicProfileHTML(company, locations, benefits, vacancies, reviews, 
           <div class="pub-hero__text">
             <div class="pub-hero__row">
               <h1 class="pub-hero__name">${company.name}</h1>
-              ${company.isVerified ? '<span class="pub-verified">✓ Verificada</span>' : ''}
+              ${company.isVerified ? `<span class="pub-verified">${check} Verificada</span>` : ''}
             </div>
             <p class="pub-hero__industry">${company.industry || ''}</p>
             <div class="pub-hero__meta">
               ${company.size ? `<span class="pub-meta-tag">${company.size} empleados</span>` : ''}
               ${company.foundedYear ? `<span class="pub-meta-tag">Fundada en ${company.foundedYear}</span>` : ''}
-              ${locations.length > 0 ? `<span class="pub-meta-tag">📍 ${locations[0].city || ''}, ${locations[0].country || ''}</span>` : ''}
-              ${avgRating ? `<span class="pub-meta-tag pub-meta-tag--rating">★ ${avgRating} (${totalReviews} reseñas)</span>` : ''}
+              ${locations.length > 0 ? `<span class="pub-meta-tag">${mapPin} ${locations[0].city || ''}, ${locations[0].country || ''}</span>` : ''}
+              ${avgRating ? `<span class="pub-meta-tag pub-meta-tag--rating">${starFilled(14)} ${avgRating} (${totalReviews} reseñas)</span>` : ''}
             </div>
           </div>
           <div class="pub-hero__actions">
@@ -112,7 +112,7 @@ function getPublicProfileHTML(company, locations, benefits, vacancies, reviews, 
             <div class="pub-benefits">
               ${benefits.map(b => `
                 <div class="pub-benefit">
-                  <span class="pub-benefit__icon">✨</span>
+                  <span class="pub-benefit__icon">${sparkle}</span>
                   <div>
                     <div class="pub-benefit__name">${b.name}</div>
                     ${b.description ? `<div class="pub-benefit__desc">${b.description}</div>` : ''}
@@ -162,7 +162,7 @@ function getPublicProfileHTML(company, locations, benefits, vacancies, reviews, 
                 <div class="pub-field">
                   <label class="pub-form-label">Calificación general *</label>
                   <div class="pub-stars" id="star-rating">
-                    ${[1,2,3,4,5].map(i => `<button type="button" class="pub-star" data-value="${i}">★</button>`).join('')}
+                    ${[1,2,3,4,5].map(i => `<button type="button" class="pub-star" data-value="${i}">${starFilled(20)}</button>`).join('')}
                   </div>
                   <input type="hidden" id="review-rating" value="0" />
                 </div>
@@ -218,8 +218,8 @@ function getPublicProfileHTML(company, locations, benefits, vacancies, reviews, 
                 </div>
                 ${r.title ? `<h4 class="pub-review__title">${r.title}</h4>` : ''}
                 <p class="pub-review__text">${r.content || r.body || ''}</p>
-                ${r.pros ? `<div class="pub-review__pros"><span>👍 Pros:</span> ${r.pros}</div>` : ''}
-                ${r.cons ? `<div class="pub-review__cons"><span>👎 Cons:</span> ${r.cons}</div>` : ''}
+                ${r.pros ? `<div class="pub-review__pros"><span>${thumbsUp} Pros:</span> ${r.pros}</div>` : ''}
+                ${r.cons ? `<div class="pub-review__cons"><span>${thumbsDown} Cons:</span> ${r.cons}</div>` : ''}
                 ${r.employmentStatus ? `<span class="pub-review__status">${r.employmentStatus === 'current' ? 'Empleado actual' : 'Ex-empleado'}</span>` : ''}
                 ${r.isAnonymous ? '<span class="pub-review__anon">Publicado anónimamente</span>' : ''}
               </div>
@@ -245,7 +245,7 @@ function getPublicProfileHTML(company, locations, benefits, vacancies, reviews, 
                       ${v.type ? `<span class="pub-tag">${v.type}</span>` : ''}
                       ${v.modality ? `<span class="pub-tag">${v.modality}</span>` : ''}
                       ${v.level ? `<span class="pub-tag">${v.level}</span>` : ''}
-                      ${v.city ? `<span class="pub-tag">📍 ${v.city}</span>` : ''}
+                      ${v.city ? `<span class="pub-tag">${mapPin} ${v.city}</span>` : ''}
                     </div>
                   </div>
                   <span class="pub-vacancy-card__salary">${formatSalaryRange(v.salaryMin, v.salaryMax, v.currency)}</span>
@@ -401,7 +401,7 @@ function initPublicProfileEvents(company, isAuthenticated) {
       await applicationService.followCompany(company.id);
       store.addToast({ type: 'success', message: `Ahora sigues a ${company.name}` });
       const btn = document.getElementById('follow-company-btn');
-      if (btn) { btn.textContent = 'Siguiendo ✓'; btn.disabled = true; }
+      if (btn) { btn.innerHTML = `${check} Siguiendo`; btn.disabled = true; }
     } catch (err) {
       store.addToast({ type: 'error', message: err.response?.data?.message || 'Error al seguir empresa' });
     }

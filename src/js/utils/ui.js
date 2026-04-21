@@ -265,9 +265,11 @@ export function renderNavbar({
   const resolvedRoles = normalizeRoles(
     Array.isArray(roles) && roles.length > 0
       ? roles
-      : Array.isArray(user?.roles)
-        ? user.roles
-        : fallbackStoreRoles,
+      : fallbackStoreRoles.length > 0
+        ? fallbackStoreRoles
+        : Array.isArray(user?.roles)
+          ? user.roles
+          : [],
   );
   const resolvedPrimaryRole =
     primaryRole ||
@@ -469,6 +471,10 @@ export function renderPage({
         background: #dcfce7;
         color: #166534;
       }
+      .site-header__role-badge--company_admin {
+        background: #dcfce7;
+        color: #166534;
+      }
       .site-header__role-badge--admin {
         background: #fee2e2;
         color: #991b1b;
@@ -587,6 +593,10 @@ export function renderPage({
         color: #3730a3;
       }
       .role-shell__badge--recruiter {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .role-shell__badge--company_admin {
         background: #dcfce7;
         color: #166534;
       }

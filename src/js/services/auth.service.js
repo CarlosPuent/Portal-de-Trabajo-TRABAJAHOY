@@ -100,6 +100,7 @@ function enrichUserWithCompanyContext(user = null, payload = {}) {
   const firstMembership = memberships[0] || null;
 
   const resolvedCompanyId =
+    user.ownedCompany?.[0]?.id ||
     user.companyId ||
     user.company_id ||
     user.company?.id ||
@@ -109,6 +110,7 @@ function enrichUserWithCompanyContext(user = null, payload = {}) {
     "";
 
   const resolvedCompanyName =
+    user.ownedCompany?.[0]?.name ||
     user.companyName ||
     user.company_name ||
     user.company?.name ||
@@ -321,7 +323,6 @@ export const authService = {
    * Check if user has specific role
    */
   hasRole(roleName) {
-    const roles = store.get("roles");
-    return roles && roles.includes(roleName);
+    return store.hasAnyRole([roleName]);
   },
 };

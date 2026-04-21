@@ -18,6 +18,12 @@ export const applicationService = {
    * @param {Object} params - { page, limit, status, vacancyId }
    */
   async getApplications(params = {}) {
+    if (params.vacancyId) {
+       // use specialized recruiter route
+       const { vacancyId, ...rest } = params;
+       const response = await api.get(`/applications/vacancies/${vacancyId}/applicants`, rest);
+       return response.data;
+    }
     const response = await api.get('/applications', params);
     return response.data;
   },

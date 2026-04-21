@@ -6,6 +6,7 @@ import {
   renderNavbar,
   renderPage,
 } from "@utils/ui.js";
+import { check } from "@utils/icons.js";
 
 let currentProfile = null;
 let currentExperiences = [];
@@ -443,7 +444,7 @@ function initEditEvents() {
         } else {
           await candidateService.createProfile(data);
         }
-        btn.textContent = "✓ Guardado";
+        btn.innerHTML = `${check} Guardado`;
         setTimeout(() => {
           btn.textContent = origText;
           btn.disabled = false;
