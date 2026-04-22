@@ -151,11 +151,13 @@ function collectCompanyOptionsFromUser(user) {
 
   if (Array.isArray(user.companies)) {
     user.companies.forEach((company) => {
-      upsertCompanyOption(
-        optionsMap,
-        company?.id || company?.companyId || company?.company_id,
-        company?.name || company?.companyName || company?.company_name,
-      );
+      upsertCompanyOption(optionsMap, company?.id, company?.name);
+    });
+  }
+
+  if (Array.isArray(user.ownedCompany)) {
+    user.ownedCompany.forEach((company) => {
+      upsertCompanyOption(optionsMap, company?.id, company?.name);
     });
   }
 

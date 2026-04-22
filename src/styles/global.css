@@ -15,6 +15,16 @@ body {
   min-height: 100vh;
 }
 
+/* ── SVG Icon helpers ────────────────────────────────────────────────────── */
+.icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.icon--star-filled { color: #f59e0b; }
+.icon--star-empty  { color: #d1d5db; }
+.icon--building    { color: #9ca3af; }
+
 /* Common utilities */
 .text-center {
   text-align: center;

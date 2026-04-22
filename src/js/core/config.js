@@ -55,6 +55,7 @@ export const config = {
     MANAGE_CV: "/candidate/cv",
     SAVED_JOBS: "/candidate/saved-jobs",
     MY_APPLICATIONS: "/candidate/applications",
+    APPLICATION_DETAIL: "/candidate/applications/:id",
     VACANCIES: "/vacancies",
     VACANCY_DETAIL: "/vacancies/:id",
     COMPANY_DASHBOARD: "/company/dashboard",
@@ -70,6 +71,17 @@ export const config = {
     RESOURCE_DETAIL: "/resources/:id",
     FORUM: "/forum",
     FORUM_THREAD: "/forum/thread/:id",
+    // Company public profile (visible to any user)
+    COMPANY_PUBLIC_PROFILE: "/companies/:id",
+    // Recruiter/admin routes
+    EDIT_COMPANY_PROFILE: "/company/profile/edit",
+    APPLICANT_DETAIL: "/company/applications/:id",
+    CANDIDATE_PUBLIC_PROFILE: "/candidate/profile/:userId",
+    // Company members management
+    COMPANY_MEMBERS: "/company/members",
+    // Admin-only routes
+    ADMIN_RESOURCES: "/admin/resources",
+    ADMIN_FORUM: "/admin/forum",
   },
 };
 

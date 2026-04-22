@@ -286,6 +286,9 @@ function renderDashboardPage(authContext, loadFailed = false) {
                   <span class="status-badge status--${a.status}">${getStatusText(a.status)}</span>
                   ${a.createdAt ? `<span class="detail-date">${new Date(a.createdAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}</span>` : ""}
                 </div>
+                <div class="detail-card__actions">
+                  <a href="#/candidate/applications/${a.id}" class="btn btn--sm btn--outline">Ver seguimiento</a>
+                </div>
               </div>`;
                     })
                     .join("")
@@ -367,11 +370,14 @@ function renderDashboardPage(authContext, loadFailed = false) {
               ${v.type ? `<span class="detail-tag">${v.type}</span>` : ""}
             </div>
             ${v.salaryMin ? `<p class="detail-card__salary">$${v.salaryMin.toLocaleString()} - $${(v.salaryMax || v.salaryMin).toLocaleString()} ${v.currency || ""}</p>` : ""}
-            <div class="detail-card__bottom">
-              <span class="status-badge status--${a.status}">${getStatusText(a.status)}</span>
-              <span class="detail-date">Aplicado el ${a.createdAt ? new Date(a.createdAt).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "—"}</span>
-            </div>
-          </div>
+                <div class="detail-card__bottom">
+                  <span class="status-badge status--${a.status}">${getStatusText(a.status)}</span>
+                  <span class="detail-date">Aplicado el ${a.createdAt ? new Date(a.createdAt).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "—"}</span>
+                </div>
+                <div class="detail-card__actions">
+                  <a href="#/candidate/applications/${a.id}" class="btn btn--sm btn--outline">Ver seguimiento</a>
+                </div>
+              </div>
         </div></div>`;
               })
               .join("")}</div>`

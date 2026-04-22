@@ -114,8 +114,9 @@ function renderVacancyRow(vacancy = {}) {
         ${
           String(vacancy.status || "").toLowerCase() === "draft"
             ? `<button class="btn btn--primary btn--sm" data-publish-vacancy="${vacancy.id}">Publicar</button>`
-            : `<span class="manage-vacancy-card__published-note">Lista para recibir postulaciones</span>`
+            : `<a href="#/company/vacancies/${vacancy.id}/applicants" class="btn btn--primary btn--sm">Ver postulantes</a>`
         }
+        <a href="#/company/vacancies/edit/${vacancy.id}" class="btn btn--outline btn--sm" style="margin-left: 8px;">Editar</a>
       </footer>
     </article>
   `;

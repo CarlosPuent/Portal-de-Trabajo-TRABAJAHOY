@@ -1,7 +1,7 @@
 // Client-side Router
 import { config } from "@core/config";
 import { store } from "@core/store";
-import { getDashboardRouteForRoles } from "@core/roles";
+import { getDashboardRouteForRoles, hasAnyRole } from "@core/roles";
 
 class Router {
   constructor() {
@@ -117,6 +117,9 @@ class Router {
       if (result === false) {
         return false; // Navigation cancelled
       }
+      if (typeof result === "string") {
+        return result; // Redirect
+      }
     }
     return true;
   }
@@ -138,9 +141,7 @@ class Router {
     // Check if route requires specific roles
     if (route.roles && route.roles.length > 0) {
       const userRoles = store.get("roles") || [];
-      const hasRequiredRole = route.roles.some((role) =>
-        userRoles.includes(role),
-      );
+      const hasRequiredRole = hasAnyRole(userRoles, route.roles);
 
       if (!hasRequiredRole) {
         return getDashboardRouteForRoles(userRoles, config.ROUTES.LANDING);
