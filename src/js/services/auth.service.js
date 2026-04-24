@@ -195,13 +195,33 @@ export const authService = {
     return payload;
   },
 
+  async registerCompany(data) {
+    const response = await api.post("/auth/register-company", data);
+
+    const payload = extractPayload(response);
+    const session = persistAuthSession(payload, {
+      fallbackRoles: [ROLE.RECRUITER],
+    });
+
+    if (session.roles.length === 0) {
+      try {
+        await this.fetchCurrentUserProfile();
+      } catch {
+        store.set("roles", [ROLE.RECRUITER]);
+        storage.setRoles([ROLE.RECRUITER]);
+      }
+    }
+
+    return payload;
+  },
+
   async login(credentials) {
     const response = await api.post("/auth/login", credentials);
 
     const payload = extractPayload(response);
     const session = persistAuthSession(payload);
 
-    // 🔥 VALIDACIÓN FUERTE DE ROLES
+    // Strong role validation: bail if backend returned no role.
     if (!session.roles || session.roles.length === 0) {
       try {
         const profile = await this.fetchCurrentUserProfile();
@@ -216,7 +236,7 @@ export const authService = {
       }
     }
 
-    // 🔥 evitar race condition con router
+    // Avoid race with hash-based router.
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     return payload;

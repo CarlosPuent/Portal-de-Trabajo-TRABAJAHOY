@@ -1,9 +1,7 @@
-// Login Page Controller (Candidato)
+// Login Page Controller (unificado)
 import { authService } from "@services/auth.service";
 import { config } from "@core/config";
-import { ROLE, getDashboardRouteForRoles, hasAnyRole } from "@core/roles";
-
-const CANDIDATE_ALLOWED_ROLES = [ROLE.CANDIDATE];
+import { getDashboardRouteForRoles } from "@core/roles";
 import {
   bindPasswordToggle,
   createSubmitStateController,
@@ -77,10 +75,10 @@ function renderLoginPage() {
   const mainContent = renderAuthShell({
     variant: "login",
     cardClass: "auth-card--login",
-    eyebrow: "Acceso Candidato",
+    eyebrow: "Acceso",
     title: "Iniciar Sesión",
     subtitle:
-      'Entra para postularte a vacantes y gestionar tu perfil. ¿No tienes cuenta? <a href="#/register" class="auth-card__subtitle-link">Crear Cuenta</a>',
+      'Accede a tu cuenta de candidato o empresa. ¿No tienes cuenta? <a href="#/register" class="auth-card__subtitle-link">Crear cuenta →</a>',
     form,
     footer:
       "Tus credenciales se usan solo para autenticar tu sesión en TrabajaHoy.",
@@ -123,17 +121,6 @@ function initLoginEvents() {
     try {
       await authService.login({ email, password });
       const { roles } = getAuthUiContext();
-
-      if (!hasAnyRole(roles, CANDIDATE_ALLOWED_ROLES)) {
-        await authService.logout();
-        setFormError(
-          errorDiv,
-          "Esta cuenta es de empresa. Usa el acceso Empresas para ingresar.",
-        );
-        setSubmitting(false);
-        return;
-      }
-
       window.location.hash = `#${getDashboardRouteForRoles(roles, config.ROUTES.VACANCIES)}`;
     } catch (error) {
       console.error("Login error:", error);

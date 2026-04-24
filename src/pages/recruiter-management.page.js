@@ -10,6 +10,7 @@ import {
   resolveRequestErrorMessage,
   showLoading,
 } from "@utils/ui";
+import { lock } from "@utils/icons";
 
 /* =========================
    Helpers
@@ -131,7 +132,7 @@ function renderTable(state) {
                         : isMe
                           ? `<span class="badge-me">Ese eres tú</span>`
                           : isOwnerRow
-                            ? `<span class="text-muted" title="El propietario no puede ser modificado" style="font-size: 12px; cursor: help;">🔒 Protegido</span>`
+                            ? `<span class="text-muted" title="El propietario no puede ser modificado" style="font-size: 12px; cursor: help; display: inline-flex; align-items: center; gap: 4px;">${lock} Protegido</span>`
                             : `<span class="text-muted">—</span>`
                     }
                   </div>

@@ -382,7 +382,7 @@ function renderAdminUsersHTML(authContext, state) {
 }
 
 /* =========================================================
-   🔥 LOGICA DE DATOS Y NORMALIZACIÓN
+   Data + normalization
 ========================================================= */
 
 function pickFirstArray(source) {
@@ -511,7 +511,7 @@ async function loadUsers(state) {
     const params = {
       page: state.page,
       limit: state.limit,
-      search: state.searchQuery || "", // 🔥 ESTO es lo que le faltaba a tu código
+      search: state.searchQuery || "",
     };
 
     // 2. Ejecutamos la llamada según si hay filtro de rol o no
@@ -603,16 +603,14 @@ function bindAllEvents(state, authContext) {
     btn.onclick = async () => {
       const userId = btn.dataset.delete;
 
-      // ✅ 6. Evitar borrar a sí mismo
       if (authContext.user && String(userId) === String(authContext.user.id)) {
         alert("No puedes eliminar tu propio usuario.");
         return;
       }
 
-      // ✅ 3. Fix Delete User UX
       if (
         !confirm(
-          "⚠️ Esta acción eliminará el usuario permanentemente. ¿Continuar?",
+          "Esta acción eliminará el usuario permanentemente. ¿Continuar?",
         )
       )
         return;
@@ -621,11 +619,9 @@ function bindAllEvents(state, authContext) {
         await adminService.deleteUser(userId);
         showToast("Usuario eliminado correctamente");
 
-        // ✅ 5. Refresh después de cambios
         await loadUsers(state);
         renderAndBind(state, authContext);
       } catch (error) {
-        // ✅ 4. Manejo de Errores
         const msg = resolveRequestErrorMessage(
           error,
           "Error inesperado al eliminar el usuario",
@@ -662,7 +658,6 @@ function bindAllEvents(state, authContext) {
     const lastName = document.getElementById("edit-lastName").value;
 
     try {
-      // ✅ 2. Fix Update User: Enviando SOLO {firstName, lastName} y NO los roles
       await adminService.updateUser(state.editModal.user.id, {
         firstName,
         lastName,
@@ -670,11 +665,9 @@ function bindAllEvents(state, authContext) {
       showToast("Usuario actualizado correctamente");
       state.editModal.open = false;
 
-      // ✅ 5. Refresh después de cambios
       await loadUsers(state);
       renderAndBind(state, authContext);
     } catch (error) {
-      // ✅ 4. Manejo de Errores
       const msg = resolveRequestErrorMessage(
         error,
         "Error inesperado al actualizar el usuario",
@@ -716,19 +709,13 @@ function bindAllEvents(state, authContext) {
       if (!roleName) return;
 
       try {
-        // ✅ 1. Fix para Roles: .toUpperCase()
-        await adminService.assignRole(
-          state.modal.user.id,
-          roleName.toUpperCase(),
-        );
+        await adminService.assignRole(state.modal.user.id, roleName);
         showToast("Rol asignado correctamente");
         state.modal.open = false;
 
-        // ✅ 5. Refresh después de cambios
         await loadUsers(state);
         renderAndBind(state, authContext);
       } catch (error) {
-        // ✅ 4. Manejo de Errores
         const msg = resolveRequestErrorMessage(
           error,
           "Error inesperado al asignar el rol",
@@ -748,19 +735,13 @@ function bindAllEvents(state, authContext) {
       if (!roleName) return;
 
       try {
-        // ✅ 1. Fix para Roles: .toUpperCase()
-        await adminService.removeRole(
-          state.modal.user.id,
-          roleName.toUpperCase(),
-        );
+        await adminService.removeRole(state.modal.user.id, roleName);
         showToast("Rol removido correctamente");
         state.modal.open = false;
 
-        // ✅ 5. Refresh después de cambios
         await loadUsers(state);
         renderAndBind(state, authContext);
       } catch (error) {
-        // ✅ 4. Manejo de Errores
         const msg = resolveRequestErrorMessage(
           error,
           "Error inesperado al remover el rol",

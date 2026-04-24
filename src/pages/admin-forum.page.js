@@ -223,8 +223,8 @@ function getAdminForumHTML(reports, threads, categories, reviewReports, allRevie
                 ${review.title ? `<h4 class="af-review-row__title">${review.title}</h4>` : ''}
                 ${(review.content || review.body) ? `<p class="af-review-row__text">${review.content || review.body}</p>` : ''}
                 ${(review.pros || review.cons) ? `<div class="af-review-row__pros-cons">
-                  ${review.pros ? `<span class="af-review-row__pro">✓ ${review.pros}</span>` : ''}
-                  ${review.cons ? `<span class="af-review-row__con">✗ ${review.cons}</span>` : ''}
+                  ${review.pros ? `<span class="af-review-row__pro">${check} ${review.pros}</span>` : ''}
+                  ${review.cons ? `<span class="af-review-row__con">${xMark} ${review.cons}</span>` : ''}
                 </div>` : ''}
                 <div class="af-report__actions">
                   <button class="btn btn--primary btn--sm approve-review-btn" data-id="${review.id || r.id}">${check} Aprobar</button>
@@ -256,8 +256,8 @@ function getAdminForumHTML(reports, threads, categories, reviewReports, allRevie
                 ${r.title ? `<h4 class="af-review-row__title">${r.title}</h4>` : ''}
                 ${r.content ? `<p class="af-review-row__text">${r.content}</p>` : ''}
                 ${(r.pros || r.cons) ? `<div class="af-review-row__pros-cons">
-                  ${r.pros ? `<span class="af-review-row__pro">✓ ${r.pros}</span>` : ''}
-                  ${r.cons ? `<span class="af-review-row__con">✗ ${r.cons}</span>` : ''}
+                  ${r.pros ? `<span class="af-review-row__pro">${check} ${r.pros}</span>` : ''}
+                  ${r.cons ? `<span class="af-review-row__con">${xMark} ${r.cons}</span>` : ''}
                 </div>` : ''}
                 ${st !== 'rejected' ? `<div class="af-report__actions">
                   ${st !== 'approved' ? `<button class="btn btn--primary btn--sm approve-review-btn" data-id="${r.id}">${check} Aprobar</button>` : ''}

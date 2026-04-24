@@ -609,7 +609,7 @@ function initEditEvents() {
 
         currentProfile = savedProfile;
 
-        btn.textContent = "✓ Guardado";
+        btn.textContent = "Guardado";
         setTimeout(() => {
           btn.textContent = origText;
           btn.disabled = false;

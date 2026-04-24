@@ -9,6 +9,7 @@ import {
   renderRoleShell,
   showLoading,
 } from "@utils/ui";
+import { checkCircle, clock } from "@utils/icons";
 
 /* =========================
    UI HELPERS (TOASTS & MODALS)
@@ -206,7 +207,6 @@ function showVerificationModal() {
 
     overlay.querySelector("#cv-cancel").onclick = () => close(null);
 
-    // 🚀 LÓGICA MEJORADA DE ENVÍO
     overlay.querySelector("#cv-submit").onclick = () => {
       const fileInput = overlay.querySelector("#cv-file");
       const file = fileInput.files[0];
@@ -306,7 +306,6 @@ function renderCompanyDashboardView(company) {
     company.verificationStatus === "none" ||
     company.verificationStatus === "rejected";
 
-  // ✅ Corregido: return (sin la r extra) y estructura de divs cerrada correctamente
   return `
     <div class="company-dashboard-grid">
       <div class="company-card-pro">
@@ -342,7 +341,7 @@ function renderCompanyDashboardView(company) {
           <div class="info-row">
             <span class="info-label">Estado de Cuenta</span>
             <span class="info-value">
-              ${company.isVerified ? "✅ Verificada" : "⏳ Pendiente de Verificación"}
+              <span style="display:inline-flex; align-items:center; gap:6px;">${company.isVerified ? `${checkCircle} Verificada` : `${clock} Pendiente de Verificación`}</span>
             </span>
           </div>
         </div>

@@ -749,7 +749,7 @@ export async function initCreateVacancyPage() {
       resolveCategoryOptions(),
     ]);
 
-    // 🚀 VALIDACIÓN CRÍTICA DE EMPRESA VERIFICADA
+    // Verified-company gate.
     let isCompanyVerified = false;
     // Si resolveCompanySelectionContext trajo una empresa por defecto (selectedCompanyId)
     if (companyContext.selectedCompanyId) {

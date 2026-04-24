@@ -12,6 +12,9 @@ import {
   showLoading,
   resolveRequestErrorMessage,
 } from "@utils/ui";
+import { mapPin, folder, trash } from "@utils/icons";
+
+const usersIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
 
 /* =========================
    HELPERS & UI
@@ -93,10 +96,10 @@ function renderVacancyCard(v) {
         </span>
       </div>
       <div class="vacancy-card__meta">
-        <span>📍 ${[v.city, v.country].filter(Boolean).join(", ") || "Ubicación no definida"}</span>
+        <span style="display:inline-flex; align-items:center; gap:4px;">${mapPin} ${[v.city, v.country].filter(Boolean).join(", ") || "Ubicación no definida"}</span>
       </div>
       <div class="vacancy-card__stats">
-        <span class="stat">👥 ${count} candidatos</span>
+        <span class="stat" style="display:inline-flex; align-items:center; gap:4px;">${usersIcon} ${count} candidatos</span>
       </div>
       <div class="vacancy-card__actions">
         ${
@@ -115,8 +118,8 @@ function renderVacancyCard(v) {
                 : ""
           }
 
-          <button class="btn btn--outline btn--sm" data-archive="${v.id}" title="Archivar">📁</button>
-          <button class="btn btn--outline btn--sm btn-danger-icon" data-delete="${v.id}" title="Eliminar">🗑️</button>
+          <button class="btn btn--outline btn--sm" data-archive="${v.id}" title="Archivar" aria-label="Archivar">${folder}</button>
+          <button class="btn btn--outline btn--sm btn-danger-icon" data-delete="${v.id}" title="Eliminar" aria-label="Eliminar">${trash}</button>
         </div>
       </div>
     </article>
