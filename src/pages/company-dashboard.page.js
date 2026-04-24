@@ -1,6 +1,7 @@
 import { config } from "@core/config";
 import { store } from "@core/store";
 import { companyService } from "@services/company.service";
+import { authService } from "@services/auth.service";
 import {
   getAuthUiContext,
   renderNavbar,
@@ -10,111 +11,65 @@ import {
 } from "@utils/ui";
 
 /* =========================
-   HELPERS
+   UTILIDADES DE FORMATO
 ========================= */
 
-function formatDate(value) {
-  if (!value) return "-";
-  const d = new Date(value);
-  return isNaN(d.getTime()) ? "-" : d.toLocaleDateString();
-}
-
-function getFullName(user = {}) {
-  return (
-    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-    user?.email ||
-    "Sin nombre"
-  );
-}
-
-function getStatusBadge(status) {
-  return `<span class="status-badge status-${status}">${status}</span>`;
-}
+const formatters = {
+  date: (val) =>
+    val
+      ? new Date(val).toLocaleDateString("es-ES", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+      : "-",
+  name: (u) =>
+    [u?.firstName, u?.lastName].filter(Boolean).join(" ") ||
+    u?.email ||
+    "Candidato",
+  badge: (status) => {
+    const s = status.toLowerCase();
+    return `<span class="status-pill pill-${s}">${status.toUpperCase()}</span>`;
+  },
+};
 
 /* =========================
-   KPI CARDS
+   COMPONENTES PREMIUM
 ========================= */
 
-function renderCard(title, value) {
+function renderMetricCard(label, value, trend = "") {
   return `
-    <div class="kpi-card">
-      <div class="kpi-title">${title}</div>
-      <div class="kpi-value">${value}</div>
-    </div>
-  `;
-}
-
-/* =========================
-   CHART
-========================= */
-
-function renderChart() {
-  return `
-    <div class="chart-card">
-      <h3>Aplicaciones por estado</h3>
-      <canvas id="applicationsChart"></canvas>
-    </div>
-  `;
-}
-
-/* =========================
-   TABLE
-========================= */
-
-function renderTable(applications) {
-  if (!applications.length) {
-    return `<p>No hay aplicaciones recientes.</p>`;
-  }
-
-  return `
-    <div class="table-card">
-      <div class="table-header">
-        <h3>Últimas aplicaciones</h3>
+    <div class="metric-card-premium">
+      <div class="metric-content">
+        <span class="metric-label">${label}</span>
+        <h2 class="metric-value">${value ?? 0}</h2>
       </div>
-
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Candidato</th>
-            <th>Vacante</th>
-            <th>Estado</th>
-            <th>Fecha</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${applications
-            .map(
-              (a) => `
-            <tr class="table-row" data-id="${a.id}">
-              <td>${getFullName(a.user)}</td>
-              <td>${a.vacancy?.title || "-"}</td>
-              <td>${getStatusBadge(a.status)}</td>
-              <td>${formatDate(a.appliedAt)}</td>
-            </tr>
-          `,
-            )
-            .join("")}
-        </tbody>
-      </table>
+      <div class="metric-decoration"></div>
     </div>
   `;
 }
 
 /* =========================
-   MAIN
+   LÓGICA PRINCIPAL
 ========================= */
 
 export async function initCompanyDashboardPage() {
   const app = document.getElementById("app");
   const authContext = getAuthUiContext();
 
-  showLoading("Cargando dashboard...");
+  showLoading("Sincronizando registros operativos...");
 
   try {
-    const user = store.get("user");
-    const companyId = user?.companyId || user?.company?.id;
+    const profile = await authService.fetchCurrentUserProfile();
+    const user = profile?.user || store.get("user");
+    const companyId = user?.companyId || user?.company?.id || user?.company_id;
 
-    const [dashboard, statusData, recentApps] = await Promise.all([
+    if (!companyId || companyId === "undefined") {
+      renderSetupRequired(app, authContext);
+      return;
+    }
+
+    const [stats, distribution, applications] = await Promise.all([
       companyService.getDashboard(companyId),
       companyService.getApplicationsByStatus(companyId),
       companyService.getRecentApplications(companyId),
@@ -126,29 +81,72 @@ export async function initCompanyDashboardPage() {
     });
 
     const content = `
-      <div class="dashboard">
-
-        <div class="kpi-grid">
-          ${renderCard("Vacantes", dashboard.vacancies)}
-          ${renderCard("Aplicaciones", dashboard.applications)}
-          ${renderCard("En proceso", dashboard.candidatesInProcess)}
-          ${renderCard("Contratados", dashboard.hires)}
+      <div class="dashboard-premium">
+        <div class="metrics-grid-premium">
+          ${renderMetricCard("Vacantes Activas", stats.vacancies)}
+          ${renderMetricCard("Postulaciones Totales", stats.applications)}
+          ${renderMetricCard("Candidatos en Proceso", stats.candidatesInProcess)}
+          ${renderMetricCard("Contrataciones", stats.hires)}
         </div>
 
-        <div class="dashboard-row">
-          ${renderChart()}
-        </div>
+        <div class="main-data-layout">
+          <section class="premium-card chart-section">
+            <div class="card-header-premium">
+              <h3>Distribución de Talento</h3>
+              <p>Estado actual de los procesos</p>
+            </div>
+            <div class="chart-wrapper-premium">
+              <canvas id="applicationsChart"></canvas>
+            </div>
+          </section>
 
-        <div class="dashboard-row">
-          ${renderTable(recentApps)}
+          <section class="premium-card table-section">
+            <div class="card-header-premium">
+              <h3>Actividad Reciente</h3>
+              <p>Últimas interacciones de candidatos</p>
+            </div>
+            <div class="table-responsive">
+              <table class="premium-table">
+                <thead>
+                  <tr>
+                    <th>Candidato</th>
+                    <th>Posición Solicitada</th>
+                    <th>Estado de Gestión</th>
+                    <th>Fecha de Registro</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${
+                    applications.length > 0
+                      ? applications
+                          .map(
+                            (a) => `
+                      <tr>
+                        <td>
+                           <div class="user-cell">
+                             <div class="user-avatar-mini">${formatters.name(a.user)[0]}</div>
+                             <span class="user-name">${formatters.name(a.user)}</span>
+                           </div>
+                        </td>
+                        <td class="td-vacancy">${a.vacancy?.title || "N/A"}</td>
+                        <td>${formatters.badge(a.status)}</td>
+                        <td class="td-date">${formatters.date(a.appliedAt)}</td>
+                      </tr>`,
+                          )
+                          .join("")
+                      : `<tr><td colspan="4" class="empty-row">No hay actividad reciente procesada.</td></tr>`
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
         </div>
-
       </div>
     `;
 
     const shell = renderRoleShell({
       title: "Dashboard",
-      subtitle: "Resumen general de tu empresa",
+      subtitle: user?.company?.name || "Enterprise Management",
       roles: authContext.roles,
       primaryRole: authContext.primaryRole,
       content,
@@ -157,154 +155,133 @@ export async function initCompanyDashboardPage() {
     app.innerHTML = renderPage({
       navbar,
       main: `<div class="container">${shell}</div>`,
-      extraStyles: `
-        .dashboard {
-          display:flex;
-          flex-direction:column;
-          gap:28px;
-        }
-
-        .kpi-grid {
-          display:grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap:18px;
-        }
-
-        .kpi-card {
-          background:#fff;
-          padding:22px;
-          border-radius:16px;
-          border:1px solid #e5e7eb;
-          position:relative;
-          overflow:hidden;
-          transition: all .2s ease;
-        }
-
-        .kpi-card::after {
-          content:"";
-          position:absolute;
-          inset:0;
-          background:linear-gradient(to right, transparent, rgba(0,0,0,0.03));
-          opacity:0;
-          transition:.2s;
-        }
-
-        .kpi-card:hover {
-          transform:translateY(-4px);
-          box-shadow:0 12px 28px rgba(0,0,0,0.08);
-        }
-
-        .kpi-card:hover::after {
-          opacity:1;
-        }
-
-        .kpi-title {
-          font-size:13px;
-          color:#6b7280;
-        }
-
-        .kpi-value {
-          font-size:30px;
-          font-weight:800;
-          margin-top:6px;
-          color:#111827;
-        }
-
-        .dashboard-row {
-          display:grid;
-        }
-
-        .chart-card, .table-card {
-          background:#fff;
-          padding:22px;
-          border-radius:16px;
-          border:1px solid #e5e7eb;
-        }
-
-        #applicationsChart {
-          max-height:280px;
-        }
-
-        .admin-table {
-          width:100%;
-          border-collapse:collapse;
-          margin-top:14px;
-        }
-
-        .admin-table th {
-          text-align:left;
-          font-size:12px;
-          color:#6b7280;
-          padding:12px;
-          border-bottom:1px solid #eee;
-        }
-
-        .admin-table td {
-          padding:12px;
-          border-bottom:1px solid #f1f5f9;
-        }
-
-        .table-row:hover {
-          background:#f9fafb;
-          cursor:pointer;
-        }
-
-        .status-badge {
-          padding:5px 10px;
-          border-radius:999px;
-          font-size:11px;
-          font-weight:600;
-          text-transform:capitalize;
-        }
-
-        .status-pending { background:#fef3c7; color:#92400e; }
-        .status-reviewed { background:#dbeafe; color:#1e40af; }
-        .status-interview { background:#e0e7ff; color:#3730a3; }
-        .status-accepted { background:#dcfce7; color:#166534; }
-        .status-rejected { background:#fee2e2; color:#991b1b; }
-      `,
+      extraStyles: getEnterpriseStyles(),
     });
 
-    /* =========================
-       CHART INIT
-    ========================= */
+    initializeAnalytics(distribution);
+  } catch (error) {
+    console.error("Dashboard Sync Error:", error);
+    app.innerHTML = `<div class="container-error-premium">Error de sincronización con el servidor.</div>`;
+  }
+}
 
-    const ctx = document.getElementById("applicationsChart");
+/* =========================
+   ESTILOS Y GRÁFICOS
+========================= */
 
-    if (ctx) {
-      new Chart(ctx, {
-        type: "doughnut",
-        data: {
-          labels: Object.keys(statusData),
-          datasets: [
-            {
-              data: Object.values(statusData),
-              backgroundColor: [
-                "#facc15",
-                "#60a5fa",
-                "#818cf8",
-                "#22c55e",
-                "#ef4444",
-              ],
-              borderWidth: 0,
-            },
-          ],
+function initializeAnalytics(data) {
+  const ctx = document.getElementById("applicationsChart");
+  if (!ctx || !data || Object.keys(data).length === 0) return;
+
+  // Paleta Premium: Azul noche, Naranja acento, Grises profundos
+  const palette = ["#0f172a", "#f97316", "#334155", "#64748b", "#94a3b8"];
+
+  new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: Object.keys(data).map(
+        (k) => k.charAt(0).toUpperCase() + k.slice(1),
+      ),
+      datasets: [
+        {
+          data: Object.values(data),
+          backgroundColor: palette,
+          hoverBackgroundColor: palette,
+          borderWidth: 4,
+          borderColor: "#ffffff",
         },
-        options: {
-          cutout: "60%",
-          plugins: {
-            legend: {
-              position: "bottom",
-              labels: {
-                usePointStyle: true,
-              },
-            },
+      ],
+    },
+    options: {
+      cutout: "75%",
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: {
+            usePointStyle: true,
+            padding: 20,
+            font: { size: 12, family: "'Inter', sans-serif" },
           },
         },
-      });
+      },
+    },
+  });
+}
+
+function getEnterpriseStyles() {
+  return `
+    :root {
+      --brand-blue: #0f172a;
+      --brand-orange: #f97316;
+      --bg-light: #f8fafc;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border-soft: #e2e8f0;
     }
-  } catch (error) {
-    console.error(error);
-    app.innerHTML = `<p>Error cargando dashboard</p>`;
-  }
+
+    .dashboard-premium { display: flex; flex-direction: column; gap: 32px; background: var(--bg-light); }
+
+    /* Metric Cards */
+    .metrics-grid-premium { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; }
+    .metric-card-premium { 
+      background: #fff; 
+      padding: 24px; 
+      border-radius: 12px; 
+      border: 1px solid var(--border-soft);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    .metric-decoration { 
+      position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; 
+      background: linear-gradient(90deg, var(--brand-blue) 0%, var(--brand-orange) 100%); 
+    }
+    .metric-label { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.025em; }
+    .metric-value { font-size: 36px; font-weight: 800; color: var(--brand-blue); margin-top: 8px; }
+
+    /* Layout Data */
+    .main-data-layout { display: grid; grid-template-columns: 380px 1fr; gap: 24px; }
+    @media (max-width: 1024px) { .main-data-layout { grid-template-columns: 1fr; } }
+
+    .premium-card { background: #fff; border-radius: 12px; border: 1px solid var(--border-soft); padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .card-header-premium { margin-bottom: 24px; }
+    .card-header-premium h3 { font-size: 18px; font-weight: 700; color: var(--brand-blue); }
+    .card-header-premium p { font-size: 14px; color: var(--text-muted); }
+
+    /* Table Styles */
+    .premium-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .premium-table th { 
+      background: #f1f5f9; 
+      padding: 12px 16px; 
+      text-align: left; 
+      font-size: 12px; 
+      font-weight: 600; 
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-soft);
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .premium-table td { padding: 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vertical-align: middle; }
+    
+    .user-cell { display: flex; align-items: center; gap: 12px; }
+    .user-avatar-mini { 
+      width: 32px; height: 32px; background: var(--brand-blue); color: #fff; 
+      border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;
+    }
+    .user-name { font-weight: 600; color: var(--brand-blue); }
+    .td-vacancy { color: var(--text-main); font-weight: 500; }
+    .td-date { color: var(--text-muted); font-size: 13px; }
+
+    /* Status Pills */
+    .status-pill { 
+      padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; display: inline-block;
+      background: #f1f5f9; color: #475569;
+    }
+    .pill-pending { background: #fff7ed; color: #c2410c; } /* Orange soft */
+    .pill-interview { background: #eff6ff; color: #1d4ed8; } /* Blue soft */
+    .pill-accepted { background: #f0fdf4; color: #15803d; } /* Green soft */
+    .pill-rejected { background: #fef2f2; color: #b91c1c; } /* Red soft */
+
+    .chart-wrapper-premium { height: 300px; }
+    .empty-row { text-align: center; padding: 48px !important; color: var(--text-muted); font-style: italic; }
+  `;
 }

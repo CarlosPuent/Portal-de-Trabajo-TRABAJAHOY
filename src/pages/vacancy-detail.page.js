@@ -1,4 +1,4 @@
-// Vacancy Detail Page Controller - Updated
+// Vacancy Detail Page Controller - Premium Refactor
 import { vacancyService } from "@services/vacancy.service";
 import { applicationService } from "@services/application.service";
 import {
@@ -15,50 +15,45 @@ export async function initVacancyDetailPage(vacancyId) {
   const app = document.getElementById("app");
   const authContext = getAuthUiContext();
 
-  showLoading("Cargando detalle del empleo...");
+  showLoading("Cargando información técnica...");
 
   try {
-    // 1. Obtener detalles de la vacante
     const vacancyData = await vacancyService.getVacancyById(vacancyId);
     const vacancy = vacancyData?.data || vacancyData;
 
     if (!vacancy || !vacancy.id) {
       app.innerHTML = getVacancyStateHTML(authContext, {
-        title: "Empleo no encontrado",
-        message: "La vacante no existe o ya no está disponible.",
+        title: "Recurso no disponible",
+        message:
+          "La posición solicitada no se encuentra activa en nuestro sistema.",
       });
       return;
     }
 
-    // 2. 🔥 LÓGICA DE POSTULACIÓN PREVIA 🔥
-    // Verificamos si el usuario ya aplicó para cambiar el estado del botón
     let hasApplied = false;
     if (
       authContext.isAuthenticated &&
       authContext.primaryRole === "candidate"
     ) {
       try {
-        const myApps = await applicationService.getApplications(
-          authContext.user.id,
-          authContext.roles,
-          { vacancyId: vacancy.id },
-        );
-        hasApplied = myApps.total > 0;
+        // CAMBIO 2: Arreglo de parámetros para evitar error de objeto en api.js
+        const response = await applicationService.getApplications({
+          vacancyId: vacancy.id,
+        });
+        hasApplied = response.total > 0;
       } catch (err) {
-        console.warn("No se pudo verificar postulación previa", err);
+        console.warn("Estado de postulación no verificado", err);
       }
     }
 
-    // 3. Renderizar detalle
     app.innerHTML = getVacancyDetailHTML(vacancy, authContext, hasApplied);
     initVacancyDetailEvents(vacancy, hasApplied);
   } catch (error) {
-    console.error("Error loading vacancy detail:", error);
     app.innerHTML = getVacancyStateHTML(authContext, {
-      title: "Error al cargar el empleo",
+      title: "Error de conexión",
       message: resolveRequestErrorMessage(
         error,
-        "No pudimos cargar esta vacante en este momento.",
+        "Error interno al recuperar los datos de la vacante.",
       ),
     });
   }
@@ -76,16 +71,15 @@ function getVacancyStateHTML(authContext, { title, message }) {
 
   const state = renderContentState({
     type: "error",
-    icon: "alert",
     title,
     message,
-    actionLabel: "Volver a empleos",
+    actionLabel: "Regresar al listado",
     actionHref: "#/vacancies",
   });
 
   return renderPage({
     navbar,
-    main: `<div class="container" style="padding: 36px 0;">${state}</div>`,
+    main: `<div class="container" style="padding: 60px 0;">${state}</div>`,
     pageClass: "vacancy-detail-page",
   });
 }
@@ -102,204 +96,149 @@ function getVacancyDetailHTML(vacancy, authContext, hasApplied) {
     primaryRole,
   });
 
-  // Mapeos de etiquetas
   const modalityLabels = {
     remote: "Remoto",
-    hybrid: "Híbrido",
+    hybrid: "Esquema Híbrido",
     onsite: "Presencial",
   };
   const typeLabels = {
-    "full-time": "Tiempo completo",
-    "part-time": "Medio tiempo",
-    contract: "Contrato",
-    freelance: "Freelance",
-    internship: "Prácticas",
+    "full-time": "Jornada Completa",
+    "part-time": "Media Jornada",
+    contract: "Por Proyecto",
   };
-  const levelLabels = {
-    junior: "Junior",
-    mid: "Mid",
-    senior: "Senior",
-    lead: "Lead",
-    manager: "Manager",
-    director: "Director",
-  };
-
-  // 🔥 BADGE DE VERIFICACIÓN 🔥
-  const verifiedBadge = vacancy.company?.isVerified
-    ? `<span class="company-verified-badge" title="Empresa Verificada">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-        </svg>
-       </span>`
-    : "";
 
   const header = renderSectionHeader({
-    title: vacancy.title || "Detalle de vacante",
-    subtitle: vacancy.company?.name || vacancy.companyName || "Empresa",
+    title: vacancy.title,
+    subtitle: vacancy.company?.name || "Corporativo",
     actions:
-      '<a href="#/vacancies" class="btn btn--outline btn--sm">Volver</a>',
+      '<a href="#/vacancies" class="btn-enterprise-link">← Volver al listado</a>',
   });
 
-  // Lógica del botón de acción principal
-  let applyButtonHtml = "";
+  let actionButtons = "";
   if (!isAuthenticated) {
-    applyButtonHtml = `<a href="#/login" class="btn btn--primary btn--full-width">Iniciar sesión para aplicar</a>`;
-  } else if (primaryRole === "recruiter" || primaryRole === "admin") {
-    applyButtonHtml = `<button class="btn btn--outline btn--full-width" disabled title="Usa una cuenta de candidato">Solo candidatos pueden aplicar</button>`;
-  } else if (hasApplied) {
-    applyButtonHtml = `<button class="btn btn--success btn--full-width" disabled style="background: #10b981; border-color: #10b981; color: white; cursor: default;">✓ Ya postulado</button>`;
-  } else {
-    applyButtonHtml = `<button class="btn btn--primary btn--full-width" id="apply-btn">Aplicar ahora</button>`;
+    actionButtons = `<a href="#/login" class="btn-enterprise-primary">Autenticarse para postular</a>`;
+  } else if (isCandidate) {
+    if (hasApplied) {
+      actionButtons = `<button class="btn-enterprise-success" disabled>Postulación completada</button>`;
+    } else {
+      actionButtons = `
+        <button class="btn-enterprise-primary" id="apply-btn">Enviar postulación</button>
+        <button class="btn-enterprise-outline" id="save-job-btn">Guardar en favoritos</button>`;
+    }
   }
 
   const mainContent = `
     <div class="container">
-      ${header}
-      <div class="vacancy-detail">
-        <div class="vacancy-detail__main">
-          <nav class="breadcrumb">
-            <a href="#/" class="breadcrumb__link">Inicio</a>
-            <span class="breadcrumb__separator">/</span>
-            <a href="#/vacancies" class="breadcrumb__link">Empleos</a>
-            <span class="breadcrumb__separator">/</span>
-            <span class="breadcrumb__current">${vacancy.title}</span>
-          </nav>
-
-          <article class="vacancy-detail__content">
-            <header class="vacancy-detail__header">
-              <div class="vacancy-detail__company-logo">
-                ${(vacancy.company?.name || vacancy.companyName || "C")[0]}
-              </div>
-              <div class="vacancy-detail__info">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <p class="vacancy-detail__company">${vacancy.company?.name || vacancy.companyName || "Empresa"}</p>
-                  ${verifiedBadge}
-                </div>
-                <h1 class="vacancy-detail__title">${vacancy.title}</h1>
-                <div class="vacancy-detail__meta">
-                  <span class="vacancy-detail__meta-item">📍 ${vacancy.city || "Remoto"}</span>
-                  <span class="vacancy-detail__meta-item">💼 ${modalityLabels[vacancy.modality] || vacancy.modality}</span>
-                  <span class="vacancy-detail__meta-item">⏱️ ${typeLabels[vacancy.type] || vacancy.type}</span>
-                  <span class="vacancy-detail__meta-item">📈 ${levelLabels[vacancy.level] || vacancy.level}</span>
-                </div>
-              </div>
-            </header>
-
-            ${
-              vacancy.salaryMin
-                ? `
-              <div class="vacancy-detail__salary-card">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="12" y1="1" x2="12" y2="23"></line>
-                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                </svg>
-                <div class="vacancy-detail__salary-info">
-                  <p class="vacancy-detail__salary-label">Rango Salarial</p>
-                  <p class="vacancy-detail__salary-amount">$${vacancy.salaryMin.toLocaleString()} - $${vacancy.salaryMax?.toLocaleString()} ${vacancy.currency || "USD"}</p>
-                </div>
-              </div>`
-                : ""
-            }
-
-            <section class="vacancy-detail__section">
-              <h2 class="vacancy-detail__section-title">Descripción del puesto</h2>
-              <div class="vacancy-detail__text">${vacancy.description || "Sin descripción"}</div>
-            </section>
-
-            ${
-              vacancy.requirements
-                ? `
-              <section class="vacancy-detail__section">
-                <h2 class="vacancy-detail__section-title">Requisitos</h2>
-                <div class="vacancy-detail__text">${vacancy.requirements}</div>
-              </section>`
-                : ""
-            }
-          </article>
-        </div>
-
-        <aside class="vacancy-detail__sidebar">
-          <div class="vacancy-detail__apply-card">
-            <h3 class="vacancy-detail__apply-title">¿Te interesa este puesto?</h3>
-            <p class="vacancy-detail__apply-text">
-              ${hasApplied ? "Ya enviaste tu perfil para esta vacante. ¡Mucha suerte!" : "Asegúrate de que tu perfil esté completo antes de enviar tu solicitud."}
-            </p>
-            <div class="vacancy-detail__apply-actions">
-              ${applyButtonHtml}
-              ${isAuthenticated && isCandidate ? `<button class="btn btn--outline btn--full-width" id="save-job-btn">Guardar empleo</button>` : ""}
-              <p class="vacancy-detail__feedback" id="vacancy-feedback" role="status" aria-live="polite"></p>
+      <div class="enterprise-layout">
+        <main class="enterprise-main">
+          <header class="enterprise-header">
+            <div class="enterprise-brand-box">
+               ${(vacancy.company?.name || "C")[0]}
             </div>
+            <div class="enterprise-title-area">
+              <h1 class="enterprise-h1">${vacancy.title}</h1>
+              <p class="enterprise-subtitle">${vacancy.company?.name} • ${vacancy.city || "Ubicación por definir"}</p>
+            </div>
+          </header>
+
+          <div class="enterprise-grid-specs">
+            <div class="spec-item"><span class="spec-label">Modalidad</span><span class="spec-value">${modalityLabels[vacancy.modality]}</span></div>
+            <div class="spec-item"><span class="spec-label">Contrato</span><span class="spec-value">${typeLabels[vacancy.type]}</span></div>
+            <div class="spec-item"><span class="spec-label">Nivel</span><span class="spec-value">${vacancy.level}</span></div>
           </div>
 
-          <div class="vacancy-detail__summary-card">
-            <h3 class="vacancy-detail__summary-title">Resumen del empleo</h3>
-            <ul class="vacancy-detail__summary-list">
-              <li class="summary-item"><span class="summary-item__label">Empresa</span><span class="summary-item__value">${vacancy.company?.name || vacancy.companyName}</span></li>
-              <li class="summary-item"><span class="summary-item__label">Tipo</span><span class="summary-item__value">${typeLabels[vacancy.type] || vacancy.type}</span></li>
-              <li class="summary-item"><span class="summary-item__label">Modalidad</span><span class="summary-item__value">${modalityLabels[vacancy.modality] || vacancy.modality}</span></li>
-            </ul>
+          <section class="enterprise-section">
+            <h2 class="enterprise-h2">Descripción Ejecutiva</h2>
+            <div class="enterprise-rich-text">${vacancy.description}</div>
+          </section>
+
+          <section class="enterprise-section">
+            <h2 class="enterprise-h2">Requerimientos Técnicos</h2>
+            <div class="enterprise-rich-text">${vacancy.requirements}</div>
+          </section>
+        </main>
+
+        <aside class="enterprise-sidebar">
+          <div class="enterprise-card sticky-card">
+            <h3 class="enterprise-h3">Gestión de Candidatura</h3>
+            <p class="enterprise-text-sm">Finalice su proceso de aplicación adjuntando su perfil profesional actualizado.</p>
+            <div class="enterprise-actions-stack">
+              ${actionButtons}
+            </div>
           </div>
         </aside>
       </div>
     </div>
-  `;
 
-  const modalHTML = `
-    <div class="modal-overlay" id="apply-modal" style="display: none;">
-      <div class="modal">
-        <div class="modal__header">
-          <h3 class="modal__title">Postularme a ${vacancy.title}</h3>
-          <button class="modal__close" id="close-modal">&times;</button>
+    <div class="enterprise-modal-overlay" id="apply-modal" style="display: none;">
+      <div class="enterprise-modal">
+        <div class="enterprise-modal-header">
+          <h3 class="enterprise-h3">Confirmar Postulación</h3>
+          <button class="enterprise-modal-close" id="close-modal">✕</button>
         </div>
-        <form class="modal__form" id="apply-form">
-          <div class="form-group">
-            <label class="form-label" for="cover-letter">Carta de presentación (opcional)</label>
-            <textarea id="cover-letter" class="form-textarea" rows="6" placeholder="¿Por qué eres el candidato ideal para este puesto?"></textarea>
-          </div>
-          <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
-            <p style="font-size: 13px; color: #475569; margin: 0;">
-              ℹ️ <strong>Nota:</strong> Se enviará automáticamente el CV que tienes cargado en tu perfil profesional.
-            </p>
-          </div>
-          <div class="modal__actions">
-            <button type="button" class="btn btn--outline" id="cancel-apply">Cancelar</button>
-            <button type="submit" class="btn btn--primary" id="submit-apply">Confirmar postulación</button>
-          </div>
-        </form>
+        <div class="enterprise-modal-body">
+          <form id="apply-form">
+            <div class="enterprise-form-group">
+              <label class="enterprise-label">Mensaje de presentación (Opcional)</label>
+              <textarea id="cover-letter" class="enterprise-textarea" placeholder="Describa brevemente su valor añadido para la organización..."></textarea>
+            </div>
+            <div class="enterprise-alert-info">
+              Su currículum vitae y datos de contacto se adjuntarán automáticamente de acuerdo a su perfil registrado.
+            </div>
+            <div class="enterprise-modal-footer">
+              <button type="button" class="btn-enterprise-outline" id="cancel-apply">Descartar</button>
+              <button type="submit" class="btn-enterprise-primary" id="submit-apply">Confirmar y Enviar</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   `;
 
   const styles = `
-    .vacancy-detail-page { min-height: calc(100vh - 70px); padding: 32px 0; background: #f9fafb; }
-    .breadcrumb { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; font-size: 14px; }
-    .breadcrumb__link { color: #6b7280; text-decoration: none; }
-    .breadcrumb__separator { color: #d1d5db; }
-    .breadcrumb__current { color: #374151; font-weight: 500; }
-    .company-verified-badge { color: #3b82f6; display: flex; align-items: center; }
-    .vacancy-detail { display: grid; grid-template-columns: 1fr 320px; gap: 32px; }
-    .vacancy-detail__content { background: white; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .vacancy-detail__header { display: flex; gap: 24px; margin-bottom: 32px; border-bottom: 1px solid #e5e7eb; padding-bottom: 32px; }
-    .vacancy-detail__company-logo { width: 80px; height: 80px; border-radius: 16px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #6b7280; font-size: 36px; }
-    .vacancy-detail__company { font-size: 16px; color: #6b7280; margin: 0; }
-    .vacancy-detail__title { font-size: 28px; font-weight: 700; color: #111827; margin: 4px 0 16px; }
-    .vacancy-detail__meta { display: flex; flex-wrap: wrap; gap: 16px; }
-    .vacancy-detail__meta-item { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #6b7280; }
-    .vacancy-detail__salary-card { display: flex; align-items: center; gap: 16px; padding: 20px; background: #f0fdf4; border-radius: 12px; margin-bottom: 32px; }
-    .vacancy-detail__salary-card svg { color: #10b981; }
-    .vacancy-detail__salary-amount { font-size: 20px; font-weight: 700; color: #10b981; margin: 0; }
-    .vacancy-detail__section-title { font-size: 20px; font-weight: 600; color: #111827; margin-bottom: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; }
-    .vacancy-detail__sidebar { display: flex; flex-direction: column; gap: 20px; position: sticky; top: 92px; }
-    .vacancy-detail__apply-card, .vacancy-detail__summary-card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-    .modal { background: white; border-radius: 12px; width: 100%; max-width: 550px; }
-    .modal__header { padding: 24px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
-    .form-textarea { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-family: inherit; }
+    :root {
+      --primary-heavy: #1e293b;
+      --accent-blue: #2563eb;
+      --text-main: #334155;
+      --text-light: #64748b;
+      --border-color: #e2e8f0;
+      --bg-page: #f8fafc;
+    }
+
+    .vacancy-detail-page { background: var(--bg-page); font-family: 'Inter', system-ui, sans-serif; color: var(--text-main); }
+    .enterprise-layout { display: grid; grid-template-columns: 1fr 340px; gap: 40px; padding: 40px 0; }
+    .enterprise-main { background: white; border: 1px solid var(--border-color); border-radius: 4px; padding: 48px; }
+    .enterprise-header { display: flex; align-items: center; gap: 24px; margin-bottom: 40px; }
+    .enterprise-brand-box { width: 64px; height: 64px; background: var(--primary-heavy); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600; border-radius: 4px; }
+    .enterprise-h1 { font-size: 32px; font-weight: 700; color: var(--primary-heavy); margin: 0; letter-spacing: -0.02em; }
+    .enterprise-subtitle { font-size: 16px; color: var(--text-light); margin-top: 4px; }
+    .enterprise-grid-specs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 24px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-bottom: 40px; }
+    .spec-label { display: block; font-size: 12px; text-transform: uppercase; color: var(--text-light); letter-spacing: 0.05em; font-weight: 600; }
+    .spec-value { font-size: 15px; font-weight: 500; color: var(--primary-heavy); }
+    .enterprise-section { margin-bottom: 40px; }
+    .enterprise-h2 { font-size: 18px; font-weight: 600; color: var(--primary-heavy); margin-bottom: 16px; border-left: 3px solid var(--accent-blue); padding-left: 12px; }
+    .enterprise-rich-text { line-height: 1.7; color: var(--text-main); font-size: 15px; }
+    .sticky-card { position: sticky; top: 100px; background: white; border: 1px solid var(--border-color); padding: 32px; border-radius: 4px; }
+    .enterprise-h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+    .enterprise-actions-stack { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+    .btn-enterprise-primary { background: var(--primary-heavy); color: white; border: none; padding: 12px 24px; border-radius: 4px; font-weight: 500; cursor: pointer; text-align: center; transition: background 0.2s; }
+    .btn-enterprise-primary:hover { background: #0f172a; }
+    .btn-enterprise-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 12px 24px; border-radius: 4px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+    .btn-enterprise-outline:hover { background: #f1f5f9; }
+    .btn-enterprise-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 12px 24px; border-radius: 4px; width: 100%; font-weight: 500; }
+    .btn-enterprise-link { text-decoration: none; color: var(--text-light); font-size: 14px; }
+    .enterprise-modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .enterprise-modal { background: white; width: 100%; max-width: 500px; border-radius: 4px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+    .enterprise-modal-header { padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; }
+    .enterprise-modal-body { padding: 24px; }
+    .enterprise-textarea { width: 100%; border: 1px solid var(--border-color); border-radius: 4px; padding: 12px; min-height: 120px; font-family: inherit; margin-bottom: 16px; }
+    .enterprise-alert-info { background: #eff6ff; color: #1e40af; padding: 16px; font-size: 13px; border-radius: 4px; margin-bottom: 24px; }
+    .enterprise-modal-footer { display: flex; justify-content: flex-end; gap: 12px; }
   `;
 
   return renderPage({
     navbar,
-    main: mainContent + modalHTML,
+    main: mainContent,
     pageClass: "vacancy-detail-page",
     extraStyles: styles,
   });
@@ -309,57 +248,61 @@ function initVacancyDetailEvents(vacancy, hasApplied) {
   const applyBtn = document.getElementById("apply-btn");
   const applyModal = document.getElementById("apply-modal");
   const applyForm = document.getElementById("apply-form");
-  const submitApply = document.getElementById("submit-apply");
-  const feedback = document.getElementById("vacancy-feedback");
 
-  const setFeedback = (message = "", type = "info") => {
-    if (!feedback) return;
-    feedback.textContent = message;
-    feedback.className = `vacancy-detail__feedback ${type === "success" ? "vacancy-detail__feedback--success" : type === "error" ? "vacancy-detail__feedback--error" : ""}`;
-  };
-
-  // Mostrar modal solo si no ha aplicado
+  // Botón Abrir Modal
   if (applyBtn && !hasApplied) {
-    applyBtn.addEventListener("click", () => {
-      applyModal.style.display = "flex";
-    });
+    applyBtn.onclick = () => (applyModal.style.display = "flex");
   }
 
-  // Cerrar modal
-  const closeModal = () => {
-    applyModal.style.display = "none";
-  };
+  // CAMBIO 3: Activar el botón de "Guardar en favoritos"
+  const saveBtn = document.getElementById("save-job-btn");
+  if (saveBtn) {
+    saveBtn.onclick = async () => {
+      try {
+        await applicationService.saveJob(vacancy.id);
+        saveBtn.textContent = "Guardado";
+        saveBtn.disabled = true;
+        saveBtn.classList.remove("btn-enterprise-outline");
+        saveBtn.classList.add("btn-enterprise-success");
+      } catch (err) {
+        console.error("No se pudo guardar la vacante", err);
+      }
+    };
+  }
+
+  // Cerrar Modal
+  const closeModal = () => (applyModal.style.display = "none");
   document.getElementById("close-modal")?.addEventListener("click", closeModal);
   document
     .getElementById("cancel-apply")
     ?.addEventListener("click", closeModal);
 
-  // Submit postulación
+  // Submit de Postulación
   if (applyForm) {
     applyForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const coverLetter = document.getElementById("cover-letter")?.value || "";
+      const submitBtn = document.getElementById("submit-apply");
+      const coverLetter = document.getElementById("cover-letter")?.value;
 
-      submitApply.disabled = true;
-      submitApply.textContent = "Procesando...";
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Transmitiendo...";
 
       try {
-        // 🔥 IMPORTANTE: Usamos el método de tu applicationService 🔥
-        await applicationService.applyToJob(
-          null, // El userId lo toma el backend del token
-          null, // Los roles lo toma el backend del token
-          { vacancyId: vacancy.id, coverLetter },
-        );
+        // CAMBIO 1: Corregir nombre de función a applyToVacancy y limpiar parámetros
+        await applicationService.applyToVacancy({
+          vacancyId: vacancy.id,
+          coverLetter,
+        });
 
-        // Éxito: Redirigir al dashboard del candidato
         window.location.hash = "#/candidate/dashboard";
       } catch (error) {
-        console.error("Error al postularse:", error);
-        submitApply.disabled = false;
-        submitApply.textContent = "Confirmar postulación";
-        setFeedback(
-          resolveRequestErrorMessage(error, "No pudimos enviar tu solicitud."),
-          "error",
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Reintentar envío";
+        alert(
+          resolveRequestErrorMessage(
+            error,
+            "Fallo en el servidor. Intente más tarde.",
+          ),
         );
       }
     });

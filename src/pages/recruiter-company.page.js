@@ -77,6 +77,108 @@ function showCreateCompanyModal() {
   });
 }
 
+// ... (tus imports y toasts se mantienen igual)
+
+/* =========================
+   NUEVO: MODAL DE EDICIÓN
+========================= */
+function showEditCompanyModal(currentData) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "custom-modal-overlay";
+    overlay.innerHTML = `
+      <div class="custom-modal-card">
+        <div class="custom-modal-header"><h2>Editar Empresa</h2></div>
+        <div class="custom-modal-body" style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="modal-label">Nombre Legal</label>
+            <input type="text" id="ec-name" class="custom-input" value="${escapeHtml(currentData.name)}" />
+          </div>
+          <div>
+            <label class="modal-label">Sitio Web</label>
+            <input type="url" id="ec-website" class="custom-input" value="${escapeHtml(currentData.website || "")}" placeholder="https://ejemplo.com" />
+          </div>
+        </div>
+        <div class="custom-modal-footer">
+          <button class="admin-btn" id="ec-cancel">Cancelar</button>
+          <button class="admin-btn admin-btn--primary" id="ec-submit">Guardar Cambios</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const close = (val) => {
+      overlay.remove();
+      resolve(val);
+    };
+    overlay.querySelector("#ec-cancel").onclick = () => close(null);
+    overlay.querySelector("#ec-submit").onclick = () => {
+      const name = overlay.querySelector("#ec-name").value.trim();
+      const website = overlay.querySelector("#ec-website").value.trim();
+      close({ name, website });
+    };
+  });
+}
+
+/* =========================
+   EVENTS (ACTUALIZADO)
+========================= */
+function bindEvents(authContext, companyId, currentCompanyData) {
+  // 1. Evento Editar (EL QUE FALTABA)
+  const editBtn = document.getElementById("btn-edit-company");
+  if (editBtn && companyId) {
+    editBtn.onclick = async () => {
+      const newData = await showEditCompanyModal(currentCompanyData);
+      if (!newData) return;
+
+      showLoading("Actualizando datos...");
+      try {
+        await companyService.updateCompany(companyId, newData);
+        showToast("¡Empresa actualizada correctamente!");
+        await initRecruiterCompanyPage(); // Recargamos la página
+      } catch (error) {
+        showToast("Error al actualizar la empresa", "error");
+      }
+    };
+  }
+
+  // 2. Crear Empresa
+  const createBtn = document.getElementById("btn-onboarding-create");
+  if (createBtn) {
+    createBtn.onclick = async () => {
+      const data = await showCreateCompanyModal();
+      if (!data) return;
+
+      showLoading("Registrando empresa...");
+      try {
+        await companyService.createCompany(data);
+        await authService.fetchCurrentUserProfile();
+        showToast("¡Tu empresa ha sido registrada!");
+        await initRecruiterCompanyPage();
+      } catch (error) {
+        showToast("Error al registrar empresa", "error");
+      }
+    };
+  }
+
+  // 3. Verificación (Mismo código que tenías)
+  const verifyBtn = document.getElementById("btn-submit-verification");
+  if (verifyBtn && companyId) {
+    verifyBtn.onclick = async () => {
+      const formData = await showVerificationModal();
+      if (!formData) return;
+      showLoading("Enviando documentos...");
+      try {
+        await companyService.submitVerification(companyId, formData);
+        showToast("Documentos enviados para revisión");
+        await initRecruiterCompanyPage();
+      } catch (error) {
+        showToast("Error al enviar documentos", "error");
+      }
+    };
+  }
+}
+
 function showVerificationModal() {
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
@@ -214,37 +316,54 @@ function renderCompanyDashboardView(company) {
     company.verificationStatus === "none" ||
     company.verificationStatus === "rejected";
 
+  // ✅ Corregido: return (sin la r extra) y estructura de divs cerrada correctamente
   return `
     <div class="company-dashboard-grid">
       <div class="company-card-pro">
         <div class="company-card-pro__header">
           <h3>Detalles de la Empresa</h3>
-          <button class="btn-icon" title="Editar empresa" id="btn-edit-company" disabled>
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          <button class="btn-icon" title="Editar empresa" id="btn-edit-company">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
           </button>
         </div>
+        
         <div class="company-card-pro__body">
           <div class="info-row">
             <span class="info-label">Nombre Legal</span>
-            <span class="info-value" style="font-size: 18px; font-weight: 700; color: #0f172a;">${escapeHtml(company.name)}</span>
+            <span class="info-value" style="font-size: 18px; font-weight: 700; color: #0f172a;">
+              ${escapeHtml(company.name)}
+            </span>
           </div>
+          
           <div class="info-row">
             <span class="info-label">Sitio Web</span>
-            <span class="info-value">${escapeHtml(company.website || "No especificado")}</span>
+            <span class="info-value">
+              ${
+                company.website
+                  ? `<a href="${company.website}" target="_blank" style="color: #3b82f6; text-decoration: none;">${escapeHtml(company.website)}</a>`
+                  : '<span style="color:#94a3b8;">No especificado</span>'
+              }
+            </span>
           </div>
+          
           <div class="info-row">
-            <span class="info-label">ID de Empresa</span>
-            <span class="info-value" style="font-family: monospace; color: #64748b;">${company.id}</span>
+            <span class="info-label">Estado de Cuenta</span>
+            <span class="info-value">
+              ${company.isVerified ? "✅ Verificada" : "⏳ Pendiente de Verificación"}
+            </span>
           </div>
         </div>
       </div>
 
       <div class="company-card-pro verification-card ${status.class}">
         <div class="company-card-pro__header">
-          <h3>Estado de Verificación</h3>
+          <h3>Estatus de Verificación</h3>
           <span class="status-badge status-badge--${status.class}">${status.label}</span>
         </div>
-        <div class="company-card-pro__body" style="display:flex; flex-direction:column; justify-content:space-between; height: 100%;">
+        <div class="company-card-pro__body" style="display:flex; flex-direction:column; justify-content:space-between; min-height: 120px;">
           <p style="color: #475569; font-size: 14px; line-height: 1.5; margin-bottom: 20px;">
             ${status.desc}
           </p>
@@ -255,79 +374,12 @@ function renderCompanyDashboardView(company) {
               Subir Documentos de Verificación
             </button>
           `
-              : company.verificationStatus === "pending"
-                ? `
-            <div style="background: rgba(255,255,255,0.5); padding: 12px; border-radius: 8px; font-size: 13px; color: #b45309; border: 1px dashed #fcd34d;">
-              Por favor espera. Recibirás un correo cuando el administrador haya revisado tus documentos.
-            </div>
-          `
-                : `
-            <div style="background: rgba(255,255,255,0.5); padding: 12px; border-radius: 8px; font-size: 13px; color: #047857; border: 1px dashed #6ee7b7; display:flex; align-items:center; gap:8px;">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-              Todo en orden. Puedes publicar vacantes libremente.
-            </div>
-          `
+              : ""
           }
         </div>
       </div>
     </div>
   `;
-}
-
-/* =========================
-   EVENTS
-========================= */
-
-function bindEvents(authContext, companyId) {
-  const createBtn = document.getElementById("btn-onboarding-create");
-  if (createBtn) {
-    createBtn.onclick = async () => {
-      const data = await showCreateCompanyModal();
-      if (!data) return;
-
-      showLoading("Registrando empresa...");
-      try {
-        await companyService.createCompany(data);
-        await authService.fetchCurrentUserProfile();
-        showToast("¡Tu empresa ha sido registrada!");
-        await initRecruiterCompanyPage();
-      } catch (error) {
-        const msg =
-          error.response?.data?.message ||
-          "Hubo un error al registrar la empresa.";
-        showToast(msg, "error");
-        await initRecruiterCompanyPage();
-      }
-    };
-  }
-
-  const verifyBtn = document.getElementById("btn-submit-verification");
-  if (verifyBtn && companyId) {
-    verifyBtn.onclick = async () => {
-      const formData = await showVerificationModal();
-      if (!formData) return;
-
-      // Log final antes de enviar al servicio para asegurar que el FormData no esté vacío
-      console.log(
-        "FormData listo para enviar. Posee archivo:",
-        formData.has("documents"),
-      );
-
-      showLoading("Enviando documentos...");
-      try {
-        await companyService.submitVerification(companyId, formData);
-        showToast("Documentos enviados. Estado actualizado a En Revisión.");
-        await initRecruiterCompanyPage();
-      } catch (error) {
-        const backendMsg =
-          error.response?.data?.message ||
-          error.response?.data?.error ||
-          "Error al enviar los documentos.";
-        showToast(`Error: ${backendMsg}`, "error");
-        await initRecruiterCompanyPage();
-      }
-    };
-  }
 }
 
 /* =========================
