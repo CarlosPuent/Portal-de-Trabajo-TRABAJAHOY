@@ -15,6 +15,16 @@ body {
   min-height: 100vh;
 }
 
+/* ── SVG Icon helpers ────────────────────────────────────────────────────── */
+.icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.icon--star-filled { color: #f59e0b; }
+.icon--star-empty  { color: #d1d5db; }
+.icon--building    { color: #9ca3af; }
+
 /* Common utilities */
 .text-center {
   text-align: center;
@@ -219,6 +229,56 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+}
+
+.auth-form__section-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  margin: 8px 0 -4px 0;
+}
+
+.auth-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  background: #f3f4f6;
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 20px;
+}
+
+.auth-toggle__btn {
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.18s, color 0.18s, box-shadow 0.18s;
+  font-family: inherit;
+}
+
+.auth-toggle__btn:hover {
+  color: #374151;
+}
+
+.auth-toggle__btn--active {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.auth-input--textarea {
+  resize: vertical;
+  min-height: 80px;
+  padding-top: 12px;
+  font-family: inherit;
+  line-height: 1.4;
 }
 
 .auth-field {
