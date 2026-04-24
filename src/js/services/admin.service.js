@@ -43,7 +43,7 @@ export const adminService = {
       `/admin/users/companies/${companyId}`,
       data,
     );
-    // (si es /api/admin/companies o /api/admin/users/companies)
+
     return response.data?.data || response.data;
   },
 

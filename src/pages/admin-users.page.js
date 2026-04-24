@@ -65,7 +65,7 @@ function setGlobalFeedback(state, message, type = "info") {
 }
 
 /* =========================================================
-   🔥 COMPONENTES UI
+   COMPONENTES UI
 ========================================================= */
 
 function renderRoleBadges(roles = []) {

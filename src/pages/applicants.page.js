@@ -122,7 +122,6 @@ export async function initApplicantsPage(params) {
   try {
     const pipeline = await vacancyService.getPipeline(vacancyId);
 
-    // 👇 obtener nombre de vacante (desde cualquier candidato)
     const vacancyTitle =
       Object.values(pipeline).flat()[0]?.vacancy?.title || "Vacante";
 
@@ -315,7 +314,6 @@ function initDragAndDrop() {
       try {
         await vacancyService.updateApplicationStatus(appId, newStatus);
 
-        // 🔥 reload para mantener consistencia
         window.location.reload();
       } catch (err) {
         alert("Error actualizando estado");

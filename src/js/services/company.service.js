@@ -154,11 +154,10 @@ export const companyService = {
   },
 
   /* =========================
-      Verification (🔥 CRÍTICO)
+      Verification
   ========================= */
 
   async submitVerification(companyId, formData) {
-    // Asegúrate de que en tu componente hagas: formData.append('documents', file)
     const response = await api.upload(
       `/companies/${companyId}/verification`,
       formData,

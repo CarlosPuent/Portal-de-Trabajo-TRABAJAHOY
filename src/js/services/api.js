@@ -149,13 +149,9 @@ export const api = {
     return response.data;
   },
 
-  // 🚀 MÉTODO UPLOAD CORREGIDO
   upload: async (url, formData, onProgress = null) => {
     try {
       const response = await apiClient.post(url, formData, {
-        // SOBREESCRIBIMOS EL HEADER: Al ponerlo en undefined, Axios
-        // borra el "application/json" global y deja que el navegador
-        // elija el multipart/form-data correcto.
         headers: {
           "Content-Type": undefined,
         },

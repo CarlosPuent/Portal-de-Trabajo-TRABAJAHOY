@@ -60,7 +60,7 @@ export const config = {
     VACANCY_DETAIL: "/vacancies/:id",
     COMPANY_DASHBOARD: "/company/dashboard",
     MY_VACANCIES: "/company/vacancies",
-    COMPANY_PROFILE: "/company/profile", // 🔥 Esta es la ruta que usaremos
+    COMPANY_PROFILE: "/company/profile",
     CREATE_VACANCY: "/company/vacancies/create",
     EDIT_VACANCY: "/company/vacancies/edit/:id",
     VACANCY_APPLICANTS: "/company/vacancies/:id/applicants",

@@ -16,8 +16,6 @@ export async function initAdminDashboardPage() {
   try {
     const response = await api.get("/admin/dashboard");
     const raw = response.data?.data || response.data || {};
-
-    // 🔥 NORMALIZACIÓN ARREGLADA (Compatible con el nuevo backend)
     const data = normalizeDashboard(raw);
 
     const user = store.get("user");
@@ -179,14 +177,12 @@ export async function initAdminDashboardPage() {
 }
 
 /* =========================
-   🔥 NORMALIZADOR CLAVE
+   NORMALIZADOR CLAVE
 ========================= */
 
 function normalizeDashboard(raw) {
-  // Aseguramos que si no viene nada, al menos tengamos un objeto vacío para evitar crashes
   const kpis = raw.kpis || {};
 
-  // Extraemos la longitud si nos mandan un Array, de lo contrario usamos el número o 0
   const parseCount = (val) =>
     Array.isArray(val) ? val.length : Number(val) || 0;
 

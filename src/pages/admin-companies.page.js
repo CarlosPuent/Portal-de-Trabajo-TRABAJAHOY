@@ -237,7 +237,7 @@ function showDocumentsModal(company) {
           return `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px;">
           <span style="font-size: 14px; font-weight: 500; color: #334155; word-break: break-all;">
-            📄 Documento (${doc.documentType || "Archivo"})
+            Documento (${doc.documentType || "Archivo"})
           </span>
           <a href="${finalUrl}" target="_blank" rel="noopener noreferrer" class="admin-btn admin-btn--primary" style="text-decoration: none; font-size: 12px; padding: 6px 12px;">
             Ver/Descargar
@@ -538,7 +538,7 @@ function bindEvents() {
 
       const confirmed = await customConfirm(
         "Eliminar Empresa",
-        `⚠️ Esta acción eliminará permanentemente a <strong>${name}</strong>. ¿Deseas continuar?`,
+        `Esta acción eliminará permanentemente a <strong>${name}</strong>. ¿Deseas continuar?`,
         "Eliminar permanentemente",
         true,
       );
